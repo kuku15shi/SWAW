@@ -63,9 +63,13 @@
     .text-field-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(4, 120, 87, 0.08); }
     .text-field-title { font-weight: 700; font-size: 13px; color: #047857; }
     .text-field-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+    body.admin-locked #header, body.admin-locked main, body.admin-locked .mobile-nav-toggle { display: none; }
+    .admin-auth-gate { display: none; min-height: 75vh; align-items: center; justify-content: center; text-align: center; padding: 24px; color: #047857; font-weight: 700; }
+    body.admin-locked .admin-auth-gate { display: flex; }
   </style>
 </head>
-<body>
+<body class="admin-locked">
+  <div class="admin-auth-gate" id="admin-auth-gate">Verifying Admin Session...</div>
   <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
 
   <header id="header">
@@ -75,8 +79,9 @@
         <ul>
           <li><a href="./">Home</a></li>
           <li><a href="all-campaigns">All Campaigns</a></li>
+          <li><a href="dashboard">Admin Panel</a></li>
           <li class="active"><a href="studio">Custom Studio</a></li>
-          <li><a href="login">Login</a></li>
+          <li><a href="#" id="studio-logout-btn">Logout</a></li>
         </ul>
       </nav>
     </div>
@@ -86,8 +91,9 @@
     <ul>
       <li><a href="./">Home</a></li>
       <li><a href="all-campaigns">All Campaigns</a></li>
+      <li><a href="dashboard">Admin Panel</a></li>
       <li class="active"><a href="studio">Custom Studio</a></li>
-      <li><a href="login">Login</a></li>
+      <li><a href="#" id="studio-mobile-logout-btn">Logout</a></li>
     </ul>
   </nav>
   <div class="mobile-nav-overlay"></div>
@@ -292,6 +298,7 @@
     </div>
   </main>
 
+  <script src="js/admin-auth.js"></script>
   <script src="js/campaigns-data.js"></script>
   <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>

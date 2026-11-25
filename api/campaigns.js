@@ -1,4 +1,8 @@
+const auth = require('./_auth');
 const CAMPAIGNS_BLOB_PATH = 'sw/campaigns.json';
+const RESERVED_IDS = new Set([
+  'api', 'all-campaigns', 'campaign', 'studio', 'login', 'dashboard', 'terms', 'policy', 'css', 'js', 'frames', 'assets', '404'
+]);
 
 function parseBody(req) {
   return new Promise(function (resolve, reject) {
@@ -191,6 +195,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      const session = auth.verifyAdminRequest(req);
+      if (!session.authenticated) {
+        return res.status(401).json({ ok: false, error: 'Admin login required.' });
+      }
       if (mode === 'none') {
         return res.status(503).json({
           ok: false,
@@ -203,6 +211,12 @@ module.exports = async function handler(req, res) {
       if (!campaign || !campaign.id || !campaign.title) {
         return res.status(400).json({ ok: false, error: 'Invalid campaign payload (id and title required).' });
       }
+      if (!/^[A-Za-z0-9_-]{2,40}$/.test(String(campaign.id)) || RESERVED_IDS.has(String(campaign.id).toLowerCase())) {
+        return res.status(400).json({ ok: false, error: 'Campaign Short Code must be 2-40 URL-safe characters and not a reserved page name.' });
+      }
+      if (campaign.customFrameDataUrl && String(campaign.customFrameDataUrl).length > 3500000) {
+        return res.status(413).json({ ok: false, error: 'Uploaded frame image is too large (max ~2.5 MB).' });
+      }
       const saved = mode === 'vercel-blob'
         ? await blobSaveCampaign(campaign)
         : await ghSaveCampaign(campaign, getGitHubEnvConfig());
@@ -210,9 +224,15 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      const session = auth.verifyAdminRequest(req);
+      if (!session.authenticated) {
+        return res.status(401).json({ ok: false, error: 'Admin login required.' });
+      }
       const urlObj = new URL(req.url, 'http://localhost');
       const id = urlObj.searchParams.get('id');
-      if (!id) return res.status(400).json({ ok: false, error: 'Missing campaign id.' });
+      if (!id || !/^[A-Za-z0-9_-]{2,40}$/.test(id)) {
+        return res.status(400).json({ ok: false, error: 'Invalid campaign id.' });
+      }
       if (mode === 'vercel-blob') {
         const list = await blobReadCampaigns();
         const next = list.filter(function (c) { return c && c.id !== id; });

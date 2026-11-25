@@ -58,9 +58,16 @@
       .dash-actions { width: 100%; }
       .dash-mini-btn { min-height: 38px; padding: 6px 12px; font-size: 12.5px; }
     }
+    body.admin-locked #header, body.admin-locked main, body.admin-locked .mobile-nav-toggle { display: none; }
+    .admin-auth-gate { display: none; min-height: 75vh; align-items: center; justify-content: center; text-align: center; padding: 24px; color: #047857; font-weight: 700; }
+    body.admin-locked .admin-auth-gate { display: flex; }
+    .security-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,0.72); border: 1px solid rgba(4,120,87,0.16); font-size: 13px; }
+    .security-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; background: #d1fae5; color: #047857; font-weight: 700; font-size: 12px; }
+    .security-pill.warn { background: #fef3c7; color: #92400e; }
   </style>
 </head>
-<body>
+<body class="admin-locked">
+  <div class="admin-auth-gate" id="admin-auth-gate">Verifying Admin Session...</div>
   <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
 
   <header id="header">
@@ -90,6 +97,16 @@
   <div class="mobile-nav-overlay"></div>
 
   <main class="dash-wrap">
+    <div class="security-bar" id="security-bar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="security-pill" id="sec-mode-pill">Admin Verified</span>
+        <span id="sec-warning-text" style="color:#64748b;font-size:12px;"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="studio" class="dash-mini-btn">Open Studio</a>
+      </div>
+    </div>
+
     <div class="dash-stats-strip">
       <div class="dash-stat-box">
         <div class="dash-stat-label">Total Campaigns</div>
@@ -173,24 +190,49 @@
     </div>
   </main>
 
+  <script src="js/admin-auth.js"></script>
   <script src="js/campaigns-data.js"></script>
   <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>
   <script>
     (function () {
-      if (sessionStorage.getItem('sw_admin_logged_in') !== '1') {
-        window.location.href = 'login';
-        return;
-      }
-
       function handleLogout(e) {
         e.preventDefault();
-        sessionStorage.removeItem('sw_admin_logged_in');
-        window.location.href = 'login';
+        if (window.SocialWavesAdminAuth) {
+          window.SocialWavesAdminAuth.logout().then(function () {
+            window.location.href = 'login';
+          });
+        } else {
+          sessionStorage.removeItem('sw_admin_logged_in');
+          window.location.href = 'login';
+        }
       }
       document.getElementById('logout-btn').addEventListener('click', handleLogout);
       var mobileLogout = document.getElementById('mobile-logout-btn');
       if (mobileLogout) mobileLogout.addEventListener('click', handleLogout);
+
+      const authGate = window.SocialWavesAdminAuth
+        ? window.SocialWavesAdminAuth.requireAdmin('dashboard')
+        : Promise.resolve({ authenticated: true });
+
+      authGate.then(function (sessionInfo) {
+        if (!sessionInfo) return;
+        document.body.classList.remove('admin-locked');
+
+        const secPill = document.getElementById('sec-mode-pill');
+        const secWarn = document.getElementById('sec-warning-text');
+        if (secPill) {
+          secPill.textContent = sessionInfo.serverBacked
+            ? ('Protected Cookie (' + (sessionInfo.username || 'admin') + ')')
+            : ('Local Admin Session (' + (sessionInfo.username || 'admin') + ')');
+        }
+        if (secWarn && sessionInfo.usingDefaultPassword) {
+          secWarn.textContent = 'Tip: Set custom ADMIN_USERNAME, ADMIN_PASSWORD & AUTH_SECRET in Vercel Environment Variables.';
+        }
+        bootDashboard();
+      });
+
+      function bootDashboard() {
 
       function renderTable() {
         const tbody = document.getElementById('reports-body');
@@ -366,6 +408,7 @@
         window.SocialWavesData.ready().then(renderTable);
       } else {
         renderTable();
+      }
       }
     })();
   </script>

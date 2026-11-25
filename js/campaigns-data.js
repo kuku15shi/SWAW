@@ -364,6 +364,7 @@
     return fetch('api/campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify({ campaign: campaign })
     }).then(function (r) {
       return r.json().then(function (data) {
@@ -382,7 +383,8 @@
 
   function deleteCampaignOnServer(id) {
     return fetch('api/campaigns?id=' + encodeURIComponent(id), {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'same-origin'
     }).then(function (r) {
       REMOTE_CAMPAIGNS = REMOTE_CAMPAIGNS.filter(function (c) { return c && c.id !== id; });
       return r.ok;

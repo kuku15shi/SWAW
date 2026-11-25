@@ -21,16 +21,20 @@
         </svg>
       </div>
       <div class="login-form-pane">
-        <h1>Welcome Back!</h1>
+        <h1>Admin Sign In</h1>
+        <p style="text-align:center;font-size:12.5px;color:#64748b;margin:-6px 0 12px;">Authorized administrators only</p>
         <p id="login-error" style="text-align: center; color: #dc2626; font-size: 13px; min-height: 20px; margin: 0 0 12px;"></p>
         <form id="login-form">
-          <input type="text" name="username" id="username" required class="login-input" placeholder="username" autocomplete="username">
-          <input type="password" name="password" id="password" required class="login-input" placeholder="password" autocomplete="current-password">
-          <button type="submit" class="login-btn">Login</button>
+          <input type="text" name="username" id="username" required class="login-input" placeholder="Admin username" autocomplete="username">
+          <div style="position:relative;">
+            <input type="password" name="password" id="password" required class="login-input" placeholder="Admin password" autocomplete="current-password" style="padding-right:52px;">
+            <button type="button" id="toggle-pass-btn" aria-label="Show password" style="position:absolute;right:12px;top:11px;border:0;background:transparent;color:#047857;font-size:12px;font-weight:700;cursor:pointer;">Show</button>
+          </div>
+          <button type="submit" class="login-btn" id="login-submit-btn">Sign In</button>
         </form>
         <hr style="margin: 22px 0; border: 0; border-top: 1px solid rgba(4,120,87,0.12);">
-        <p style="text-align: center; font-size: 12px; color: #64748b; margin: 0 0 10px;">
-          Standalone demo credentials: <strong>admin</strong> / <strong>admin123</strong>
+        <p id="auth-mode-note" style="text-align: center; font-size: 11.5px; color: #64748b; margin: 0 0 10px;">
+          Verifying authentication mode...
         </p>
         <p style="text-align: center; margin: 0;">
           <a href="./" style="color: #047857; font-size: 13px; font-weight: 600;">&larr; Back to SocialWaves Home</a>
@@ -39,24 +43,61 @@
     </div>
   </div>
 
+  <script src="js/admin-auth.js"></script>
   <script>
     (function () {
       const form = document.getElementById('login-form');
       const err = document.getElementById('login-error');
-      if (sessionStorage.getItem('sw_admin_logged_in') === '1') {
-        window.location.href = 'dashboard';
-        return;
+      const submitBtn = document.getElementById('login-submit-btn');
+      const noteEl = document.getElementById('auth-mode-note');
+      const passInput = document.getElementById('password');
+      const togglePassBtn = document.getElementById('toggle-pass-btn');
+
+      const rawNext = new URLSearchParams(window.location.search).get('next') || 'dashboard';
+      const safeNext = /^(dashboard|studio)$/i.test(rawNext.replace(/\.html$/i, ''))
+        ? rawNext.replace(/\.html$/i, '').toLowerCase()
+        : 'dashboard';
+
+      if (togglePassBtn && passInput) {
+        togglePassBtn.addEventListener('click', function () {
+          const isPwd = passInput.type === 'password';
+          passInput.type = isPwd ? 'text' : 'password';
+          togglePassBtn.textContent = isPwd ? 'Hide' : 'Show';
+        });
       }
+
+      if (window.SocialWavesAdminAuth) {
+        window.SocialWavesAdminAuth.checkSession().then(function (st) {
+          if (st.authenticated) {
+            window.location.replace(safeNext);
+            return;
+          }
+          if (noteEl) {
+            noteEl.textContent = st.serverBacked
+              ? 'Protected by signed HttpOnly server session.'
+              : 'Protected admin session (set ADMIN_PASSWORD on Vercel for custom cloud credentials).';
+          }
+        });
+      }
+
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+        err.textContent = '';
         const u = document.getElementById('username').value.trim();
-        const p = document.getElementById('password').value;
-        if (u === 'admin' && p === 'admin123') {
-          sessionStorage.setItem('sw_admin_logged_in', '1');
-          window.location.href = 'dashboard';
-        } else {
-          err.textContent = 'Invalid username or password (use admin / admin123).';
+        const p = passInput.value;
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Signing in...';
         }
+        window.SocialWavesAdminAuth.login(u, p).then(function () {
+          window.location.replace(safeNext);
+        }).catch(function (authErr) {
+          err.textContent = (authErr && authErr.message) || 'Invalid username or password.';
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In';
+          }
+        });
       });
     })();
   </script>

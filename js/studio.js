@@ -156,6 +156,38 @@
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.SocialWavesData) return;
 
+    function initStudioLogout() {
+      function doLogout(e) {
+        e.preventDefault();
+        if (window.SocialWavesAdminAuth) {
+          window.SocialWavesAdminAuth.logout().then(function () {
+            window.location.href = 'login';
+          });
+        } else {
+          sessionStorage.removeItem('sw_admin_logged_in');
+          window.location.href = 'login';
+        }
+      }
+      const btn = document.getElementById('studio-logout-btn');
+      const mBtn = document.getElementById('studio-mobile-logout-btn');
+      if (btn) btn.addEventListener('click', doLogout);
+      if (mBtn) mBtn.addEventListener('click', doLogout);
+    }
+
+    const authGate = window.SocialWavesAdminAuth
+      ? window.SocialWavesAdminAuth.requireAdmin('studio')
+      : Promise.resolve({ authenticated: true });
+
+    authGate.then(function (sessionInfo) {
+      if (!sessionInfo) return;
+      document.body.classList.remove('admin-locked');
+      initStudioLogout();
+      bootStudioApp();
+    });
+  });
+
+  function bootStudioApp() {
+
     const canvas = document.getElementById('studio-canvas');
     const ctx = canvas.getContext('2d');
     const samplePhoto = makeSamplePortraitCanvas();
@@ -1384,5 +1416,5 @@
       refreshGeneratedOverlayAndDraw();
       renderSavedCustomList();
     });
-  });
+  }
 })();
