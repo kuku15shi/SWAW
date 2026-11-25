@@ -10,7 +10,7 @@
     if (fromQuery) return fromQuery;
     const parts = window.location.pathname.split('/').filter(Boolean);
     const last = parts.length ? decodeURIComponent(parts[parts.length - 1]) : '';
-    if (last && !/^(campaign(\.html)?|index(\.html)?)$/i.test(last)) {
+    if (last && !/^(campaign(\.html)?|index(\.html)?|404(\.html)?)$/i.test(last)) {
       return last;
     }
     return '4SzGA';
@@ -19,6 +19,9 @@
   function loadImage(src) {
     return new Promise(function (resolve, reject) {
       const img = new Image();
+      if (/^https?:\/\//i.test(src || '')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = function () { resolve(img); };
       img.onerror = reject;
       img.src = src;
@@ -29,7 +32,7 @@
     if (!window.SocialWavesData || !window.SimpleCropper) return;
 
     const id = resolveCampaignId();
-    const campaign = window.SocialWavesData.getCampaignById(id);
+    const campaign = window.SocialWavesData.getActiveCampaignFromUrl(id);
     document.title = campaign.title + ', Create Personalised poster to show support';
 
     const bannerPreview = document.getElementById('campaign-banner-img');
@@ -236,7 +239,7 @@
     }
 
     function updateFramePreviews() {
-      const previewUrl = campaign.customFrameDataUrl ||
+      const previewUrl = campaign.customFrameDataUrl || campaign.customFrameUrl ||
         window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: true, frame: selectedFrame });
       if (loaderBanner) loaderBanner.src = previewUrl;
       if (!bannerPreview) return;
@@ -590,7 +593,7 @@
     });
 
     async function compositePoster(croppedCanvas, formValues) {
-      const overlayUrl = campaign.customFrameDataUrl ||
+      const overlayUrl = campaign.customFrameDataUrl || campaign.customFrameUrl ||
         window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: false, frame: selectedFrame });
       const overlayImg = await loadImage(overlayUrl);
 

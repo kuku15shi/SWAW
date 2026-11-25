@@ -248,14 +248,28 @@
   }
 
   function saveCustomCampaign(campaign) {
-    const existing = getCustomCampaigns().filter(function (c) { return c.id !== campaign.id; });
-    existing.unshift(campaign);
-    localStorage.setItem(STORAGE_CAMPAIGNS_KEY, JSON.stringify(existing));
+    try {
+      const existing = getCustomCampaigns().filter(function (c) { return c.id !== campaign.id; });
+      existing.unshift(campaign);
+      localStorage.setItem(STORAGE_CAMPAIGNS_KEY, JSON.stringify(existing));
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: (e && e.name === 'QuotaExceededError')
+          ? 'Browser storage limit exceeded. Try a smaller image or delete old custom campaigns.'
+          : ((e && e.message) || 'Could not save campaign to localStorage.')
+      };
+    }
   }
 
   function deleteCustomCampaign(id) {
-    const existing = getCustomCampaigns().filter(function (c) { return c.id !== id; });
-    localStorage.setItem(STORAGE_CAMPAIGNS_KEY, JSON.stringify(existing));
+    try {
+      const existing = getCustomCampaigns().filter(function (c) { return c.id !== id; });
+      localStorage.setItem(STORAGE_CAMPAIGNS_KEY, JSON.stringify(existing));
+    } catch (e) {
+      // ignore storage errors
+    }
   }
 
   function isCustomCampaign(id) {
@@ -263,12 +277,130 @@
   }
 
   function getAllCampaigns() {
-    return getCustomCampaigns().concat(DEFAULT_CAMPAIGNS);
+    const merged = getCustomCampaigns().concat(DEFAULT_CAMPAIGNS);
+    const seen = new Set();
+    return merged.filter(function (c) {
+      if (!c || !c.id || seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+  }
+
+  function encodeBase64Url(str) {
+    try {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) {
+        bin += String.fromCharCode(bytes[i]);
+      }
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function decodeBase64Url(token) {
+    try {
+      const padLen = (4 - (token.length % 4)) % 4;
+      const b64 = token.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLen);
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function encodeCampaignToken(campaign, options) {
+    if (!campaign || !campaign.id) return '';
+    const opts = options || {};
+    const maxDataUrlLen = opts.maxDataUrlLen || 14000;
+    const compact = {
+      id: campaign.id,
+      title: campaign.title,
+      subtitle: campaign.subtitle || '',
+      badge: campaign.badge || 'Custom Campaign',
+      frameId: campaign.frameId || ('custom-' + campaign.id),
+      frameWidth: campaign.frameWidth || 800,
+      frameHeight: campaign.frameHeight || 1000,
+      cropWidth: campaign.cropWidth || 260,
+      cropHeight: campaign.cropHeight || 300,
+      aspectRatio: campaign.aspectRatio || ((campaign.cropWidth || 260) / (campaign.cropHeight || 300)),
+      slot: campaign.slot,
+      palette: campaign.palette,
+      headerTag: campaign.headerTag || '',
+      footerText: campaign.footerText || '',
+      fields: campaign.fields || [],
+      textSlots: campaign.textSlots || []
+    };
+    if (campaign.customFrameUrl) {
+      compact.customFrameUrl = campaign.customFrameUrl;
+    }
+    if (campaign.customFrameDataUrl && campaign.customFrameDataUrl.length <= maxDataUrlLen) {
+      compact.customFrameDataUrl = campaign.customFrameDataUrl;
+    }
+    return encodeBase64Url(JSON.stringify(compact));
+  }
+
+  function decodeCampaignToken(token) {
+    if (!token) return null;
+    try {
+      const jsonStr = decodeBase64Url(String(token).trim());
+      if (!jsonStr) return null;
+      const parsed = JSON.parse(jsonStr);
+      if (!parsed || typeof parsed !== 'object' || !parsed.id || !parsed.title) return null;
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function resolveCampaignFromLocation(loc) {
+    const targetLoc = loc || (typeof window !== 'undefined' ? window.location : null);
+    if (!targetLoc) return null;
+    let token = '';
+    if (targetLoc.hash && targetLoc.hash.indexOf('c=') !== -1) {
+      const hashParams = new URLSearchParams(targetLoc.hash.replace(/^#/, ''));
+      token = hashParams.get('c') || '';
+    }
+    if (!token && targetLoc.search) {
+      const searchParams = new URLSearchParams(targetLoc.search);
+      token = searchParams.get('c') || '';
+    }
+    return token ? decodeCampaignToken(token) : null;
+  }
+
+  function getCampaignLaunchUrl(campaign) {
+    if (!campaign || !campaign.id) return 'campaign';
+    const base = 'campaign?id=' + encodeURIComponent(campaign.id);
+    if (!isCustomCampaign(campaign.id) && !campaign._forceShareToken) {
+      return base;
+    }
+    const token = encodeCampaignToken(campaign);
+    if (!token || token.length > 24000) {
+      return base;
+    }
+    return base + '#c=' + token;
   }
 
   function getCampaignById(id) {
     const list = getAllCampaigns();
     return list.find(function (c) { return c.id === id; }) || list[0];
+  }
+
+  function getActiveCampaignFromUrl(fallbackId) {
+    const fromUrl = resolveCampaignFromLocation();
+    if (fromUrl) {
+      // Cache shared custom campaign locally if not already built-in
+      if (!DEFAULT_CAMPAIGNS.some(function (d) { return d.id === fromUrl.id; })) {
+        saveCustomCampaign(fromUrl);
+      }
+      return fromUrl;
+    }
+    return getCampaignById(fallbackId);
   }
 
   function getPosterStats() {
@@ -504,6 +636,11 @@
     DEFAULT_CAMPAIGNS: DEFAULT_CAMPAIGNS,
     getAllCampaigns: getAllCampaigns,
     getCampaignById: getCampaignById,
+    getActiveCampaignFromUrl: getActiveCampaignFromUrl,
+    encodeCampaignToken: encodeCampaignToken,
+    decodeCampaignToken: decodeCampaignToken,
+    resolveCampaignFromLocation: resolveCampaignFromLocation,
+    getCampaignLaunchUrl: getCampaignLaunchUrl,
     saveCustomCampaign: saveCustomCampaign,
     deleteCustomCampaign: deleteCustomCampaign,
     isCustomCampaign: isCustomCampaign,

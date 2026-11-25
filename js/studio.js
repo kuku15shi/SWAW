@@ -4,10 +4,47 @@
   function loadImage(src) {
     return new Promise(function (resolve, reject) {
       const img = new Image();
+      if (/^https?:\/\//i.test(src || '')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = function () { resolve(img); };
       img.onerror = reject;
       img.src = src;
     });
+  }
+
+  function optimizeUploadedFrame(img, origDataUrl) {
+    try {
+      const srcW = img.naturalWidth || 800;
+      const srcH = img.naturalHeight || 1000;
+      const maxDim = 1080;
+      const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+      const targetW = Math.max(100, Math.round(srcW * scale));
+      const targetH = Math.max(100, Math.round(srcH * scale));
+      if (scale === 1 && origDataUrl && origDataUrl.length <= 180000) {
+        return { dataUrl: origDataUrl, width: srcW, height: srcH };
+      }
+      const c = document.createElement('canvas');
+      c.width = targetW;
+      c.height = targetH;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0, targetW, targetH);
+      const webpUrl = c.toDataURL('image/webp', 0.85);
+      if (webpUrl && webpUrl.indexOf('data:image/webp') === 0 && (!origDataUrl || webpUrl.length < origDataUrl.length)) {
+        return { dataUrl: webpUrl, width: targetW, height: targetH };
+      }
+      const pngUrl = c.toDataURL('image/png');
+      if (pngUrl && (!origDataUrl || pngUrl.length < origDataUrl.length)) {
+        return { dataUrl: pngUrl, width: targetW, height: targetH };
+      }
+    } catch (e) {
+      // fall back to original if canvas optimization fails
+    }
+    return {
+      dataUrl: origDataUrl,
+      width: img.naturalWidth || 800,
+      height: img.naturalHeight || 1000
+    };
   }
 
   function makeSamplePortraitCanvas() {
@@ -82,6 +119,7 @@
       footerText: 'Create your personalised poster',
       frameMode: 'generated',
       customFrameDataUrl: null,
+      customFrameUrl: '',
       uploadedFrameImg: null,
       generatedOverlayImg: null,
       frameWidth: 800,
@@ -134,6 +172,7 @@
       accent: document.getElementById('st-accent'),
       dark: document.getElementById('st-dark'),
       frameFile: document.getElementById('st-frame-file'),
+      frameUrl: document.getElementById('st-frame-url'),
       autoDetectBtn: document.getElementById('st-auto-detect'),
       frameDims: document.getElementById('st-frame-dims'),
 
@@ -229,6 +268,7 @@
         frameWidth: state.frameWidth,
         frameHeight: state.frameHeight,
         customFrameDataUrl: state.frameMode === 'uploaded' ? state.customFrameDataUrl : null,
+        customFrameUrl: state.frameMode === 'uploaded' ? (state.customFrameUrl || '') : '',
         cropWidth: w,
         cropHeight: h,
         aspectRatio: w / h,
@@ -685,24 +725,52 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function (ev) {
-        loadImage(ev.target.result).then(function (img) {
-          state.frameMode = 'uploaded';
-          document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
-          els.generatedBox.style.display = 'none';
-          els.uploadedBox.style.display = 'block';
-          state.customFrameDataUrl = ev.target.result;
-          state.uploadedFrameImg = img;
-          state.frameWidth = img.naturalWidth || 800;
-          state.frameHeight = img.naturalHeight || 1000;
-          syncControlBounds();
-          autoDetectTransparentSlot(img);
-          syncInputsFromState();
-          renderTextFieldEditors();
-          drawStudioCanvas();
+        loadImage(ev.target.result).then(function (rawImg) {
+          const optimized = optimizeUploadedFrame(rawImg, ev.target.result);
+          return loadImage(optimized.dataUrl).then(function (img) {
+            state.frameMode = 'uploaded';
+            document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
+            els.generatedBox.style.display = 'none';
+            els.uploadedBox.style.display = 'block';
+            state.customFrameDataUrl = optimized.dataUrl;
+            state.uploadedFrameImg = img;
+            state.frameWidth = img.naturalWidth || optimized.width || 800;
+            state.frameHeight = img.naturalHeight || optimized.height || 1000;
+            syncControlBounds();
+            autoDetectTransparentSlot(img);
+            syncInputsFromState();
+            renderTextFieldEditors();
+            drawStudioCanvas();
+          });
         });
       };
       reader.readAsDataURL(file);
     });
+
+    if (els.frameUrl) {
+      els.frameUrl.addEventListener('change', function () {
+        const val = els.frameUrl.value.trim();
+        state.customFrameUrl = val;
+        if (!val) return;
+        loadImage(val).then(function (img) {
+          state.frameMode = 'uploaded';
+          document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
+          els.generatedBox.style.display = 'none';
+          els.uploadedBox.style.display = 'block';
+          state.customFrameDataUrl = null;
+          state.uploadedFrameImg = img;
+          state.frameWidth = img.naturalWidth || 800;
+          state.frameHeight = img.naturalHeight || 1000;
+          syncControlBounds();
+          syncInputsFromState();
+          renderTextFieldEditors();
+          drawStudioCanvas();
+        }).catch(function () {
+          // keep URL string even if cross-origin blocked preview
+          drawStudioCanvas();
+        });
+      });
+    }
 
     function autoDetectTransparentSlot(img) {
       const W = img.naturalWidth;
@@ -881,17 +949,34 @@
       }
       els.savedList.innerHTML = '';
       list.forEach(function (c) {
+        const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
+        const absUrl = new URL(launchUrl, window.location.href).href;
         const row = document.createElement('div');
         row.className = 'saved-item-row';
         row.innerHTML =
           '<div><strong>' + window.escapeHtml(c.title) + '</strong> <code style="margin-left:6px;">' + window.escapeHtml(c.id) + '</code>' +
           '<div style="font-size:12px;color:#64748b;">Slot: ' + c.slot.x + ',' + c.slot.y + ' (' + c.slot.w + '&times;' + c.slot.h + ')</div></div>' +
           '<div class="saved-item-actions">' +
-          '<a class="ctrl-mini-btn" href="' + encodeURIComponent(c.id) + '">Open</a>' +
+          '<a class="ctrl-mini-btn" href="' + launchUrl + '">Open</a>' +
+          '<button type="button" class="ctrl-mini-btn" data-copy-url="' + window.escapeHtml(absUrl) + '">Copy Link</button>' +
           '<a class="ctrl-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' +
           '<button type="button" class="ctrl-mini-btn" data-delete-id="' + window.escapeHtml(c.id) + '" style="color:#dc2626;">Delete</button>' +
           '</div>';
         els.savedList.appendChild(row);
+      });
+
+      els.savedList.querySelectorAll('[data-copy-url]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const url = btn.dataset.copyUrl;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () {
+              btn.textContent = 'Copied!';
+              setTimeout(function () { btn.textContent = 'Copy Link'; }, 1600);
+            });
+          } else {
+            window.prompt('Copy hosted campaign link:', url);
+          }
+        });
       });
 
       els.savedList.querySelectorAll('[data-delete-id]').forEach(function (btn) {
@@ -905,10 +990,60 @@
     els.publishBtn.addEventListener('click', function () {
       const payload = buildCampaignPayload();
       els.id.value = payload.id;
-      window.SocialWavesData.saveCustomCampaign(payload);
-      els.publishStatus.innerHTML =
-        'Published! <a href="' + encodeURIComponent(payload.id) +
-        '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a>';
+      const saveResult = window.SocialWavesData.saveCustomCampaign(payload);
+      if (saveResult && saveResult.ok === false) {
+        els.publishStatus.innerHTML =
+          '<span style="color:#dc2626;font-weight:700;">Save failed: ' +
+          window.escapeHtml(saveResult.error || 'Could not save campaign.') +
+          '</span>';
+        return;
+      }
+      const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
+      const fullShareUrl = new URL(launchUrl, window.location.href).href;
+      const hasOversizedLocalPng = Boolean(payload.customFrameDataUrl && payload.customFrameDataUrl.length > 14000 && !payload.customFrameUrl);
+
+      let html =
+        '<div>Saved &amp; Published! <a href="' + launchUrl +
+        '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
+        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
+        '</div>';
+
+      if (hasOversizedLocalPng) {
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Note: Large uploaded PNG frames stay in this browser only. For public GitHub links, either paste a Frame Image URL above or add the copied JSON into <code>js/campaigns-data.js</code>.</div>';
+      }
+      els.publishStatus.innerHTML = html;
+
+      const copyLinkBtn = document.getElementById('copy-hosted-link-btn');
+      if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullShareUrl).then(function () {
+              copyLinkBtn.textContent = 'Hosted Link Copied!';
+              setTimeout(function () { copyLinkBtn.textContent = 'Copy Hosted Share Link'; }, 1800);
+            });
+          } else {
+            window.prompt('Copy hosted campaign link:', fullShareUrl);
+          }
+        });
+      }
+
+      const copyJsonBtn = document.getElementById('copy-campaign-json-btn');
+      if (copyJsonBtn) {
+        copyJsonBtn.addEventListener('click', function () {
+          const jsonText = JSON.stringify(payload, null, 2);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(jsonText).then(function () {
+              copyJsonBtn.textContent = 'JSON Copied!';
+              setTimeout(function () { copyJsonBtn.textContent = 'Copy JSON for GitHub'; }, 1800);
+            });
+          } else {
+            window.prompt('Copy campaign JSON for DEFAULT_CAMPAIGNS:', jsonText);
+          }
+        });
+      }
+
       renderSavedCustomList();
     });
 
@@ -956,13 +1091,16 @@
           });
         }
 
-        if (existing.customFrameDataUrl) {
+        const existingFrameSrc = existing.customFrameDataUrl || existing.customFrameUrl;
+        if (existingFrameSrc) {
           state.frameMode = 'uploaded';
-          state.customFrameDataUrl = existing.customFrameDataUrl;
+          state.customFrameDataUrl = existing.customFrameDataUrl || null;
+          state.customFrameUrl = existing.customFrameUrl || '';
+          if (els.frameUrl) els.frameUrl.value = state.customFrameUrl;
           document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
           els.generatedBox.style.display = 'none';
           els.uploadedBox.style.display = 'block';
-          loadImage(existing.customFrameDataUrl).then(function (img) {
+          loadImage(existingFrameSrc).then(function (img) {
             state.uploadedFrameImg = img;
             syncControlBounds();
             syncInputsFromState();

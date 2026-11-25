@@ -7,24 +7,57 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <style>
-    .dash-wrap { max-width: 1140px; margin: 104px auto 60px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    .dash-wrap { max-width: 1140px; margin: 98px auto 60px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    .dash-stats-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .dash-stat-box { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 16px; padding: 16px 20px; box-shadow: 0 8px 24px rgba(4,120,87,0.06); }
+    .dash-stat-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+    .dash-stat-val { font-size: 26px; font-weight: 800; color: #047857; margin-top: 4px; font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
     .dash-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 24px; align-items: start; }
-    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
-    .dash-card { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 26px; box-shadow: 0 12px 32px rgba(4,120,87,0.07), 0 2px 8px rgba(23,33,31,0.04); }
+    .dash-card { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 26px; box-shadow: 0 12px 32px rgba(4,120,87,0.07), 0 2px 8px rgba(23,33,31,0.04); min-width: 0; }
     .dash-card h3 { color: #17211f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(4,120,87,0.1); background: linear-gradient(135deg, #047857 0%, #059669 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .dash-field { margin-bottom: 14px; }
     .dash-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #17211f; }
-    .dash-field input, .dash-field select { width: 100%; padding: 10px 12px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.78); color: #17211f; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
+    .dash-field input, .dash-field select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.78); color: #17211f; border-radius: 12px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
     .dash-field input:focus, .dash-field select:focus { background: #ffffff; border-color: #047857; box-shadow: 0 0 0 4px rgba(52,211,153,0.22); }
     .dash-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .dash-btn { background: linear-gradient(135deg, #047857, #059669); color: #fff; border: 0; padding: 11px 24px; border-radius: 999px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(4,120,87,0.22); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .dash-btn { width: 100%; min-height: 46px; background: linear-gradient(135deg, #047857, #059669); color: #fff; border: 0; padding: 12px 24px; border-radius: 999px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 8px 20px rgba(4,120,87,0.22); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .dash-btn:hover { background: linear-gradient(135deg, #065f46, #047857); transform: translateY(-1px); }
-    .dash-btn:active { transform: scale(0.97); }
+    .dash-btn:active { transform: scale(0.98); }
+    .dash-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .dash-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .dash-table th, .dash-table td { padding: 12px 10px; border-bottom: 1px solid rgba(4,120,87,0.08); text-align: left; }
-    .dash-table th { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .dash-table th, .dash-table td { padding: 12px 10px; border-bottom: 1px solid rgba(4,120,87,0.08); text-align: left; vertical-align: middle; }
+    .dash-table th { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; white-space: nowrap; }
     .dash-table tr:hover td { background: rgba(209,250,229,0.28); }
     .dash-badge { display: inline-block; background: #d1fae5; color: #047857; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+    .dash-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .dash-mini-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(4,120,87,0.18); background: rgba(255,255,255,0.88); color: #047857; font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; font-family: inherit; transition: background-color 0.15s ease, border-color 0.15s ease; }
+    .dash-mini-btn:hover { background: #d1fae5; border-color: #34d399; color: #065f46; }
+    .dash-mini-btn.danger { color: #dc2626; border-color: rgba(220,38,38,0.22); }
+    .dash-mini-btn.danger:hover { background: #fee2e2; border-color: #f87171; }
+
+    @media (max-width: 900px) {
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .dash-wrap { margin: 82px auto 36px; padding: 0 12px; }
+      .dash-stats-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+      .dash-stat-box { padding: 12px 10px; border-radius: 14px; text-align: center; }
+      .dash-stat-label { font-size: 10px; }
+      .dash-stat-val { font-size: 20px; }
+      .dash-card { padding: 18px 14px; border-radius: 16px; }
+      .dash-row-2 { grid-template-columns: 1fr; gap: 0; }
+      .dash-table thead { display: none; }
+      .dash-table, .dash-table tbody, .dash-table tr, .dash-table td { display: block; width: 100%; }
+      .dash-table tr { background: rgba(255,255,255,0.72); border: 1px solid rgba(4,120,87,0.12); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; }
+      .dash-table tr:hover td { background: transparent; }
+      .dash-table td { border-bottom: 1px dashed rgba(4,120,87,0.1); padding: 7px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: right; }
+      .dash-table td:last-child { border-bottom: 0; padding-top: 10px; justify-content: flex-start; text-align: left; }
+      .dash-table td[data-label]::before { content: attr(data-label); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; text-align: left; flex-shrink: 0; }
+      .dash-table td[data-label="Actions"]::before { display: none; }
+      .dash-actions { width: 100%; }
+      .dash-mini-btn { min-height: 38px; padding: 6px 12px; font-size: 12.5px; }
+    }
   </style>
 </head>
 <body>
@@ -57,6 +90,21 @@
   <div class="mobile-nav-overlay"></div>
 
   <main class="dash-wrap">
+    <div class="dash-stats-strip">
+      <div class="dash-stat-box">
+        <div class="dash-stat-label">Total Campaigns</div>
+        <div class="dash-stat-val" id="stat-total-camps">0</div>
+      </div>
+      <div class="dash-stat-box">
+        <div class="dash-stat-label">Custom Created</div>
+        <div class="dash-stat-val" id="stat-custom-camps">0</div>
+      </div>
+      <div class="dash-stat-box">
+        <div class="dash-stat-label">Total Posters</div>
+        <div class="dash-stat-val" id="stat-total-posters">0</div>
+      </div>
+    </div>
+
     <div class="dash-grid">
       <div class="dash-card">
         <h3>Create New Campaign</h3>
@@ -80,7 +128,7 @@
             </div>
             <div class="dash-field">
               <label for="c-color">Primary Frame Color</label>
-              <input id="c-color" type="color" value="#010483" style="height: 40px; padding: 4px;">
+              <input id="c-color" type="color" value="#047857" style="height: 44px; padding: 4px;">
             </div>
           </div>
           <div class="dash-row-2">
@@ -104,18 +152,23 @@
 
       <div class="dash-card">
         <h3>Campaign Reports &amp; Active URLs</h3>
-        <table class="dash-table">
-          <thead>
-            <tr>
-              <th>Campaign</th>
-              <th>Code</th>
-              <th>Crop Ratio</th>
-              <th>Posters</th>
-              <th>Open</th>
-            </tr>
-          </thead>
-          <tbody id="reports-body"></tbody>
-        </table>
+        <div class="dash-field" style="margin-bottom:12px;">
+          <input type="search" id="dash-search" placeholder="Search campaigns by name or code...">
+        </div>
+        <div class="dash-table-wrap">
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Code</th>
+                <th>Crop Ratio</th>
+                <th>Posters</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reports-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
@@ -140,20 +193,77 @@
 
       function renderTable() {
         const tbody = document.getElementById('reports-body');
+        const searchInput = document.getElementById('dash-search');
+        const q = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
         const stats = window.SocialWavesData.getPosterStats();
-        const list = window.SocialWavesData.getAllCampaigns();
+        const allList = window.SocialWavesData.getAllCampaigns();
+
+        const totalPosters = allList.reduce(function (sum, c) { return sum + (stats[c.id] || 0); }, 0);
+        const customCount = allList.filter(function (c) { return window.SocialWavesData.isCustomCampaign(c.id); }).length;
+        const elTotalCamps = document.getElementById('stat-total-camps');
+        const elCustomCamps = document.getElementById('stat-custom-camps');
+        const elTotalPosters = document.getElementById('stat-total-posters');
+        if (elTotalCamps) elTotalCamps.textContent = String(allList.length);
+        if (elCustomCamps) elCustomCamps.textContent = String(customCount);
+        if (elTotalPosters) elTotalPosters.textContent = String(totalPosters);
+
+        const list = allList.filter(function (c) {
+          return !q || c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q);
+        });
+
         tbody.innerHTML = '';
         list.forEach(function (c) {
           const tr = document.createElement('tr');
           const count = stats[c.id] || 0;
+          const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
+          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
+          const absUrl = new URL(launchUrl, window.location.href).href;
+          const escTitle = c.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          const escId = c.id.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          const escAbs = absUrl.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           tr.innerHTML =
-            '<td><strong>' + c.title.replace(/</g, '&lt;') + '</strong></td>' +
-            '<td><code>' + c.id + '</code></td>' +
-            '<td>' + c.cropWidth + '&times;' + c.cropHeight + '</td>' +
-            '<td><span class="dash-badge">' + count + '</span></td>' +
-            '<td><a href="' + encodeURIComponent(c.id) + '">Launch &rarr;</a></td>';
+            '<td data-label="Campaign"><strong>' + escTitle + '</strong></td>' +
+            '<td data-label="Code"><code>' + escId + '</code></td>' +
+            '<td data-label="Crop">' + c.cropWidth + '&times;' + c.cropHeight + '</td>' +
+            '<td data-label="Posters"><span class="dash-badge">' + count + '</span></td>' +
+            '<td data-label="Actions"><div class="dash-actions">' +
+              '<a class="dash-mini-btn" href="' + launchUrl + '">Open</a>' +
+              '<button type="button" class="dash-mini-btn" data-copy-link="' + escAbs + '">Copy</button>' +
+              '<a class="dash-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' +
+              (isCustom ? '<button type="button" class="dash-mini-btn danger" data-del-id="' + escId + '">Delete</button>' : '') +
+            '</div></td>';
           tbody.appendChild(tr);
         });
+
+        if (!list.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">No matching campaigns.</td></tr>';
+        }
+
+        tbody.querySelectorAll('[data-copy-link]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const url = btn.dataset.copyLink;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(url).then(function () {
+                btn.textContent = 'Copied!';
+                setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+              });
+            } else {
+              window.prompt('Copy campaign link:', url);
+            }
+          });
+        });
+
+        tbody.querySelectorAll('[data-del-id]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            window.SocialWavesData.deleteCustomCampaign(btn.dataset.delId);
+            renderTable();
+          });
+        });
+      }
+
+      const dashSearchEl = document.getElementById('dash-search');
+      if (dashSearchEl) {
+        dashSearchEl.addEventListener('input', renderTable);
       }
 
       document.getElementById('create-campaign-form').addEventListener('submit', function (e) {
@@ -179,7 +289,7 @@
           textSlots.push({ field: 'extra', x: 400, y: 888, font: '600 24px Poppins, sans-serif', color: '#fef08a', align: 'center', maxWidth: 620 });
         }
 
-        window.SocialWavesData.saveCustomCampaign({
+        const newPayload = {
           id: id,
           title: title,
           subtitle: subtitle,
@@ -194,9 +304,15 @@
           footerText: 'Created with SocialWaves Standalone',
           fields: fields,
           textSlots: textSlots
-        });
+        };
+        const saveRes = window.SocialWavesData.saveCustomCampaign(newPayload);
+        if (saveRes && saveRes.ok === false) {
+          document.getElementById('create-msg').innerHTML = '<span style="color:#dc2626;">Save failed: ' + (saveRes.error || 'Storage full') + '</span>';
+          return;
+        }
 
-        document.getElementById('create-msg').innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" published at <a href="' + encodeURIComponent(id) + '">' + encodeURIComponent(id) + '</a>';
+        const shareHref = window.SocialWavesData.getCampaignLaunchUrl(newPayload);
+        document.getElementById('create-msg').innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" published! <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
         e.target.reset();
         renderTable();
       });

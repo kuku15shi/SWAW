@@ -99,9 +99,10 @@
         items.forEach(function (c) {
           const card = document.createElement('div');
           card.className = 'member';
-          const previewUrl = c.customFrameDataUrl || window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+          const previewUrl = c.customFrameDataUrl || c.customFrameUrl || window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
           card.addEventListener('click', function () {
-            window.location.href = encodeURIComponent(c.id);
+            window.location.href = launchUrl;
           });
           card.innerHTML =
             '<div class="pic"><img src="' + previewUrl + '" alt="' + window.escapeHtml(c.title) + '"></div>' +

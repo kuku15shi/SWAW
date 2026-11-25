@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opening Campaign - SocialWaves</title>
+  <script>
+    (function () {
+      var loc = window.location;
+      var rawPath = loc.pathname || '/';
+      var trimmed = rawPath.replace(/\/+$/, '');
+      var segs = trimmed.split('/').filter(Boolean);
+      var slug = segs.length ? segs[segs.length - 1] : '';
+
+      var base = '/';
+      if (segs.length >= 2) {
+        if (/\.github\.io$/i.test(loc.hostname)) {
+          base = '/' + segs[0] + '/';
+        } else {
+          base = '/' + segs.slice(0, -1).join('/') + '/';
+        }
+      }
+
+      var knownPages = {
+        'all-campaigns': 'all-campaigns',
+        'campaign': 'campaign',
+        'studio': 'studio',
+        'login': 'login',
+        'dashboard': 'dashboard',
+        'terms': 'terms',
+        'policy': 'policy'
+      };
+
+      var lowerSlug = slug.toLowerCase().replace(/\.html$/i, '');
+      if (!slug || (segs.length === 1 && /\.github\.io$/i.test(loc.hostname))) {
+        loc.replace(base);
+        return;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(knownPages, lowerSlug)) {
+        loc.replace(base + knownPages[lowerSlug] + (loc.search || '') + (loc.hash || ''));
+        return;
+      }
+
+      if (/^[A-Za-z0-9_-]+$/.test(slug)) {
+        var extraQuery = loc.search ? '&' + loc.search.slice(1) : '';
+        loc.replace(base + 'campaign?id=' + encodeURIComponent(slug) + extraQuery + (loc.hash || ''));
+        return;
+      }
+
+      loc.replace(base);
+    })();
+  </script>
+</head>
+<body style="font-family:system-ui,-apple-system,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#f8fafc;color:#17211f;margin:0;padding:24px;text-align:center;">
+  <div>
+    <h2 style="margin:0 0 8px;">Redirecting to campaign...</h2>
+    <p style="margin:0 0 16px;color:#64748b;">If you are not redirected automatically, return home.</p>
+    <a href="./" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#047857;color:#fff;text-decoration:none;font-weight:600;">Go to SocialWaves Home</a>
+  </div>
+</body>
+</html>

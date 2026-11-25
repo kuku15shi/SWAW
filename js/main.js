@@ -50,19 +50,20 @@
     campaigns.forEach(function (c) {
       const slide = document.createElement('div');
       slide.className = 'campaign-slide';
-      const previewUrl = c.customFrameDataUrl || window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+      const previewUrl = c.customFrameDataUrl || c.customFrameUrl || window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+      const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
 
       const card = document.createElement('div');
       card.className = 'member';
       card.setAttribute('role', 'link');
       card.setAttribute('tabindex', '0');
       card.addEventListener('click', function () {
-        window.location.href = encodeURIComponent(c.id);
+        window.location.href = launchUrl;
       });
       card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          window.location.href = encodeURIComponent(c.id);
+          window.location.href = launchUrl;
         }
       });
 

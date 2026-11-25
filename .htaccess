@@ -24,7 +24,7 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # Clean extensionless page routes
-RewriteRule ^(all-campaigns|studio|login|dashboard|terms|policy)$ $1.html [L,QSA]
+RewriteRule ^(all-campaigns|campaign|studio|login|dashboard|terms|policy)$ $1.html [L,QSA]
 
 # Clean campaign shortcode route (e.g. /4SzGA -> campaign.html?id=4SzGA)
 RewriteRule ^([A-Za-z0-9_-]+)$ campaign.html?id=$1 [L,QSA]
