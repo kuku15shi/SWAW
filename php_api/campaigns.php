@@ -88,7 +88,8 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $adminUser = sw_require_admin();
+    $adminUser = sw_current_admin();
+    $creator = $adminUser ?? 'public';
     $body = sw_read_json_body();
     $c = isset($body['campaign']) && is_array($body['campaign']) ? $body['campaign'] : $body;
 
@@ -101,6 +102,21 @@ if ($method === 'POST') {
         sw_json(['ok' => false, 'error' => 'Short code must be 2-40 URL-safe characters and not a reserved page name.'], 400);
     }
 
+    // Prevent public uploaders from overwriting existing or built-in campaigns
+    if ($adminUser === null) {
+        $builtInIds = ['4SzGA', 'zpwQq'];
+        $dupStmt = $pdo->prepare('SELECT `id` FROM `campaigns` WHERE `id` = ? LIMIT 1');
+        $dupStmt->execute([$id]);
+        if (in_array($id, $builtInIds, true) || $dupStmt->fetch()) {
+            $baseId = substr($id, 0, 32);
+            do {
+                $candidate = $baseId . '-' . random_int(100, 999);
+                $dupStmt->execute([$candidate]);
+            } while ($dupStmt->fetch());
+            $id = $candidate;
+        }
+    }
+
     $cfg = sw_config();
     $frameUrl = trim((string)($c['customFrameUrl'] ?? ''));
     $dataUrl = (string)($c['customFrameDataUrl'] ?? '');
@@ -111,8 +127,13 @@ if ($method === 'POST') {
             $ext = 'png';
         }
         $bin = base64_decode($m[2], true);
-        if ($bin === false || strlen($bin) > $cfg['max_upload_bytes']) {
+        if ($bin === false || strlen($bin) < 12 || strlen($bin) > $cfg['max_upload_bytes']) {
             sw_json(['ok' => false, 'error' => 'Uploaded frame image is invalid or exceeds 4 MB.'], 413);
+        }
+        $isValidImage = (@getimagesizefromstring($bin) !== false)
+            || (substr($bin, 0, 4) === 'RIFF' && substr($bin, 8, 4) === 'WEBP');
+        if (!$isValidImage) {
+            sw_json(['ok' => false, 'error' => 'Uploaded file must be a valid PNG, JPG, GIF, or WebP image.'], 400);
         }
         $framesDir = $cfg['frames_dir'];
         if (!is_dir($framesDir) && !mkdir($framesDir, 0755, true) && !is_dir($framesDir)) {
@@ -188,7 +209,7 @@ if ($method === 'POST') {
         $startDate,
         $endDate,
         $validityDays,
-        $adminUser,
+        $creator,
         $updatedAt,
     ]);
 

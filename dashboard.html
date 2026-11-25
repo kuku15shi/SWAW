@@ -309,7 +309,7 @@
         if (secWarn && sessionInfo.usingDefaultPassword) {
           secWarn.textContent = sessionInfo.engine === 'php-mysql'
             ? 'Security tip: Default password in use — click "Change Password" to set your MySQL admin password.'
-            : 'Tip: Set custom ADMIN_USERNAME, ADMIN_PASSWORD & AUTH_SECRET in Vercel Environment Variables.';
+            : 'Tip: Start XAMPP Apache + MySQL so admin login uses database authentication.';
         }
         if (pwdToggleBtn && sessionInfo.engine === 'php-mysql') {
           pwdToggleBtn.style.display = 'inline-flex';
@@ -611,7 +611,7 @@
           ? window.SocialWavesData.getServerStatus()
           : { available: false, configured: false };
         if (srv.available && !srv.configured) {
-          msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#b45309;">Other users will NOT see it yet — enable Vercel <strong>Storage &rarr; Blob</strong> &amp; start MySQL.</div>';
+          msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#b45309;">Other users will NOT see it yet — start XAMPP MySQL and import <code>database/schema.sql</code>.</div>';
         }
         if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
           msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to database...)</span>';

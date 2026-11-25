@@ -63,13 +63,9 @@
     .text-field-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(4, 120, 87, 0.08); }
     .text-field-title { font-weight: 700; font-size: 13px; color: #047857; }
     .text-field-actions { display: flex; flex-wrap: wrap; gap: 5px; }
-    body.admin-locked #header, body.admin-locked main, body.admin-locked .mobile-nav-toggle { display: none; }
-    .admin-auth-gate { display: none; min-height: 75vh; align-items: center; justify-content: center; text-align: center; padding: 24px; color: #047857; font-weight: 700; }
-    body.admin-locked .admin-auth-gate { display: flex; }
   </style>
 </head>
-<body class="admin-locked">
-  <div class="admin-auth-gate" id="admin-auth-gate">Verifying Admin Session...</div>
+<body>
   <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
 
   <header id="header">
@@ -79,9 +75,8 @@
         <ul>
           <li><a href="./">Home</a></li>
           <li><a href="all-campaigns">All Campaigns</a></li>
-          <li><a href="dashboard">Admin Panel</a></li>
-          <li class="active"><a href="studio">Custom Studio</a></li>
-          <li><a href="#" id="studio-logout-btn">Logout</a></li>
+          <li class="active"><a href="studio">Upload Poster Studio</a></li>
+          <li><a href="login" id="studio-admin-link">Admin Login</a></li>
         </ul>
       </nav>
     </div>
@@ -91,9 +86,8 @@
     <ul>
       <li><a href="./">Home</a></li>
       <li><a href="all-campaigns">All Campaigns</a></li>
-      <li><a href="dashboard">Admin Panel</a></li>
-      <li class="active"><a href="studio">Custom Studio</a></li>
-      <li><a href="#" id="studio-mobile-logout-btn">Logout</a></li>
+      <li class="active"><a href="studio">Upload Poster Studio</a></li>
+      <li><a href="login" id="studio-mobile-admin-link">Admin Login</a></li>
     </ul>
   </nav>
   <div class="mobile-nav-overlay"></div>
@@ -101,8 +95,8 @@
   <main class="studio-wrap">
     <div class="studio-header">
       <div>
-        <h2>Custom Campaign &amp; Image Position Control Panel</h2>
-        <p>Design a campaign frame or upload your own PNG, drag or dial exact photo slot coordinates, and publish directly.</p>
+        <h2>Public Poster Upload Studio</h2>
+        <p>Upload your own custom poster frame PNG/WebP, set photo slot &amp; text positions, and publish directly for everyone to use.</p>
       </div>
       <a href="all-campaigns" class="ctrl-mini-btn">View All Campaigns &rarr;</a>
     </div>

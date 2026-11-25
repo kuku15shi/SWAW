@@ -75,7 +75,7 @@
           if (noteEl) {
             noteEl.textContent = st.serverBacked
               ? 'Protected by signed HttpOnly server session.'
-              : 'Protected admin session (set ADMIN_PASSWORD on Vercel for custom cloud credentials).';
+              : 'Local session fallback (start XAMPP Apache & MySQL for database auth).';
           }
         });
       }

@@ -156,37 +156,34 @@
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.SocialWavesData) return;
 
-    function initStudioLogout() {
-      function doLogout(e) {
-        e.preventDefault();
-        if (window.SocialWavesAdminAuth) {
-          window.SocialWavesAdminAuth.logout().then(function () {
-            window.location.href = 'login';
-          });
-        } else {
-          sessionStorage.removeItem('sw_admin_logged_in');
-          window.location.href = 'login';
-        }
-      }
-      const btn = document.getElementById('studio-logout-btn');
-      const mBtn = document.getElementById('studio-mobile-logout-btn');
-      if (btn) btn.addEventListener('click', doLogout);
-      if (mBtn) mBtn.addEventListener('click', doLogout);
+    let isAdminSession = false;
+    let onAdminStateChange = null;
+
+    function markAdminLinks() {
+      const desktop = document.getElementById('studio-admin-link');
+      const mobile = document.getElementById('studio-mobile-admin-link');
+      [desktop, mobile].forEach(function (el) {
+        if (!el) return;
+        el.href = 'dashboard';
+        el.textContent = 'Admin Panel';
+      });
     }
 
-    const authGate = window.SocialWavesAdminAuth
-      ? window.SocialWavesAdminAuth.requireAdmin('studio')
-      : Promise.resolve({ authenticated: true });
+    if (window.SocialWavesAdminAuth && typeof window.SocialWavesAdminAuth.checkSession === 'function') {
+      window.SocialWavesAdminAuth.checkSession().then(function (st) {
+        isAdminSession = Boolean(st && st.authenticated);
+        if (isAdminSession) markAdminLinks();
+        if (typeof onAdminStateChange === 'function') onAdminStateChange();
+      }).catch(function () {});
+    }
 
-    authGate.then(function (sessionInfo) {
-      if (!sessionInfo) return;
-      document.body.classList.remove('admin-locked');
-      initStudioLogout();
-      bootStudioApp();
-    });
+    bootStudioApp(
+      function () { return isAdminSession; },
+      function (cb) { onAdminStateChange = cb; }
+    );
   });
 
-  function bootStudioApp() {
+  function bootStudioApp(getIsAdmin, registerAdminListener) {
 
     const canvas = document.getElementById('studio-canvas');
     const ctx = canvas.getContext('2d');
@@ -1052,6 +1049,11 @@
         els.savedList.innerHTML = '<p style="color:#64748b;font-size:13px;margin:0;">No custom campaigns published yet. Design one above and click Publish!</p>';
         return;
       }
+      const srvNow = typeof window.SocialWavesData.getServerStatus === 'function'
+        ? window.SocialWavesData.getServerStatus()
+        : { configured: false };
+      const canDelete = (typeof getIsAdmin === 'function' && getIsAdmin()) || !srvNow.configured;
+
       els.savedList.innerHTML = '';
       list.forEach(function (c) {
         const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
@@ -1068,7 +1070,7 @@
           '<a class="ctrl-mini-btn" href="' + launchUrl + '">Open</a>' +
           '<button type="button" class="ctrl-mini-btn" data-copy-url="' + window.escapeHtml(absUrl) + '">Copy Link</button>' +
           '<a class="ctrl-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' +
-          '<button type="button" class="ctrl-mini-btn" data-delete-id="' + window.escapeHtml(c.id) + '" style="color:#dc2626;">Delete</button>' +
+          (canDelete ? '<button type="button" class="ctrl-mini-btn" data-delete-id="' + window.escapeHtml(c.id) + '" style="color:#dc2626;">Delete</button>' : '') +
           '</div>';
         els.savedList.appendChild(row);
       });
@@ -1141,15 +1143,11 @@
         : { available: false, configured: false, mode: 'static' };
       if (els.ghStatusPill) {
         if (srv.configured) {
-          els.ghStatusPill.textContent = srv.mode === 'php-mysql'
-            ? 'PHP + MySQL Connected (Short URL)'
-            : 'Vercel Cloud Ready (No Token)';
+          els.ghStatusPill.textContent = 'PHP + MySQL Connected (Short URL)';
           els.ghStatusPill.style.background = '#d1fae5';
           els.ghStatusPill.style.color = '#047857';
         } else if (srv.available) {
-          els.ghStatusPill.textContent = srv.mode === 'mysql-error'
-            ? 'MySQL Error (Check XAMPP)'
-            : 'Vercel (Attach Blob Store)';
+          els.ghStatusPill.textContent = 'MySQL Error (Check XAMPP)';
           els.ghStatusPill.style.background = '#fef3c7';
           els.ghStatusPill.style.color = '#92400e';
         } else {
@@ -1159,13 +1157,9 @@
         }
       }
       if (els.publishBtn) {
-        if (srv.configured) {
-          els.publishBtn.textContent = srv.mode === 'php-mysql'
-            ? 'Publish Live to MySQL (Short URL)'
-            : 'Publish Live (Short URL)';
-        } else {
-          els.publishBtn.textContent = 'Publish Custom Campaign';
-        }
+        els.publishBtn.textContent = srv.configured
+          ? 'Publish Poster Live (Short URL)'
+          : 'Publish Custom Poster';
       }
     }
 
@@ -1224,6 +1218,11 @@
         window.SocialWavesData.saveCampaignToServer(payload).then(function (res) {
           els.publishBtn.disabled = false;
           const synced = res.campaign || payload;
+          if (synced.id && synced.id !== payload.id) {
+            window.SocialWavesData.deleteCustomCampaign(payload.id);
+            state.id = synced.id;
+            els.id.value = synced.id;
+          }
           window.SocialWavesData.saveCustomCampaign(synced);
           const shortUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
 
@@ -1262,7 +1261,7 @@
         : { available: false, configured: false };
 
       let html =
-        '<div style="color:#b45309;font-weight:700;">Saved in THIS browser only (connect MySQL or Vercel Blob for public sync).</div>' +
+        '<div style="color:#b45309;font-weight:700;">Saved in THIS browser only (connect XAMPP PHP + MySQL for public database sync).</div>' +
         '<div style="margin-top:6px;"><a href="' + launchUrl +
         '" style="font-weight:700;text-decoration:underline;">Preview "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
@@ -1271,9 +1270,9 @@
         '</div>';
 
       if (srvStatus.available && !srvStatus.configured) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">So EVERY user sees <code>/' + window.escapeHtml(payload.id) + '</code>: enable <strong>Storage &rarr; Blob</strong> in Vercel or start XAMPP MySQL.</div>';
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">So EVERY user sees <code>/' + window.escapeHtml(payload.id) + '</code>: start XAMPP MySQL and import <code>database/schema.sql</code>.</div>';
       } else if (hasOversizedLocalPng) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Large frame image cannot fit in URL; save via PHP+MySQL or Vercel Blob so everyone sees it.</div>';
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Large frame image cannot fit in share URL; open through XAMPP Apache + MySQL so everyone sees it.</div>';
       }
       els.publishStatus.innerHTML = html;
       wirePublishActionButtons(fullShareUrl, payload);
@@ -1358,6 +1357,9 @@
       }
     }
 
+    if (typeof registerAdminListener === 'function') {
+      registerAdminListener(function () { renderSavedCustomList(); });
+    }
     const initReady = typeof window.SocialWavesData.ready === 'function'
       ? window.SocialWavesData.ready()
       : Promise.resolve();
