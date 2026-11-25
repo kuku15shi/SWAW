@@ -28,9 +28,26 @@
     });
   }
 
+  function loadFirstValidImage(candidates) {
+    const urls = (candidates || []).filter(Boolean);
+    function attempt(idx) {
+      if (idx >= urls.length) return Promise.reject(new Error('No valid frame image source'));
+      return loadImage(urls[idx]).catch(function () {
+        return attempt(idx + 1);
+      });
+    }
+    return attempt(0);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.SocialWavesData || !window.SimpleCropper) return;
+    const readyPromise = typeof window.SocialWavesData.ready === 'function'
+      ? window.SocialWavesData.ready()
+      : Promise.resolve();
+    readyPromise.then(startCampaignApp);
+  });
 
+  function startCampaignApp() {
     const id = resolveCampaignId();
     const campaign = window.SocialWavesData.getActiveCampaignFromUrl(id);
     document.title = campaign.title + ', Create Personalised poster to show support';
@@ -239,17 +256,31 @@
     }
 
     function updateFramePreviews() {
-      const previewUrl = campaign.customFrameDataUrl || campaign.customFrameUrl ||
-        window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: true, frame: selectedFrame });
-      if (loaderBanner) loaderBanner.src = previewUrl;
+      const generatedUrl = window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: true, frame: selectedFrame });
+      const candidates = [campaign.customFrameDataUrl, campaign.customFrameUrl, campaign.customFrameFallbackUrl, generatedUrl].filter(Boolean);
+      const previewUrl = candidates[0] || generatedUrl;
+
+      function attachFallback(imgEl) {
+        if (!imgEl) return;
+        let idx = 0;
+        imgEl.onerror = function () {
+          idx += 1;
+          if (idx < candidates.length) {
+            imgEl.src = candidates[idx];
+          }
+        };
+        imgEl.src = previewUrl;
+      }
+
+      attachFallback(loaderBanner);
       if (!bannerPreview) return;
 
       if (!tcIsActive()) {
-        bannerPreview.src = previewUrl;
+        attachFallback(bannerPreview);
         return;
       }
 
-      loadImage(previewUrl).then(function (overlayImg) {
+      loadFirstValidImage(candidates).then(function (overlayImg) {
         const W = overlayImg.naturalWidth || campaign.frameWidth || 800;
         const H = overlayImg.naturalHeight || campaign.frameHeight || 1000;
         const out = document.createElement('canvas');
@@ -260,7 +291,7 @@
         window.SocialWavesData.drawPosterComposite(ctx, W, H, overridden, null, overlayImg, buildPreviewFormValues());
         bannerPreview.src = out.toDataURL('image/png');
       }).catch(function () {
-        bannerPreview.src = previewUrl;
+        attachFallback(bannerPreview);
       });
     }
 
@@ -593,9 +624,13 @@
     });
 
     async function compositePoster(croppedCanvas, formValues) {
-      const overlayUrl = campaign.customFrameDataUrl || campaign.customFrameUrl ||
-        window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: false, frame: selectedFrame });
-      const overlayImg = await loadImage(overlayUrl);
+      const fallbackGenUrl = window.SocialWavesData.renderFrameDataUrl(campaign, { showPlaceholder: false, frame: selectedFrame });
+      const overlayImg = await loadFirstValidImage([
+        campaign.customFrameDataUrl,
+        campaign.customFrameUrl,
+        campaign.customFrameFallbackUrl,
+        fallbackGenUrl
+      ]);
 
       const W = overlayImg.naturalWidth || campaign.frameWidth || 800;
       const H = overlayImg.naturalHeight || campaign.frameHeight || 1000;
@@ -676,5 +711,5 @@
         window.location.reload();
       });
     }
-  });
+  }
 })();

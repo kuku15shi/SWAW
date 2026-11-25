@@ -174,6 +174,7 @@
   </main>
 
   <script src="js/campaigns-data.js"></script>
+  <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>
   <script>
     (function () {
@@ -255,7 +256,11 @@
 
         tbody.querySelectorAll('[data-del-id]').forEach(function (btn) {
           btn.addEventListener('click', function () {
-            window.SocialWavesData.deleteCustomCampaign(btn.dataset.delId);
+            const delId = btn.dataset.delId;
+            window.SocialWavesData.deleteCustomCampaign(delId);
+            if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+              window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
+            }
             renderTable();
           });
         });
@@ -312,12 +317,27 @@
         }
 
         const shareHref = window.SocialWavesData.getCampaignLaunchUrl(newPayload);
-        document.getElementById('create-msg').innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" published! <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
+        const msgEl = document.getElementById('create-msg');
+        msgEl.innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" saved! <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
+        if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+          msgEl.innerHTML += ' <span id="dash-gh-sync">(Uploading to GitHub...)</span>';
+          window.SocialWavesGitHub.publishCampaignToGitHub(newPayload).then(function (res) {
+            const liveUrl = res.pagesBase + 'campaign?id=' + encodeURIComponent(res.campaign.id);
+            msgEl.innerHTML = 'Live on GitHub! <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
+          }).catch(function (err) {
+            const s = document.getElementById('dash-gh-sync');
+            if (s) s.textContent = '(GitHub upload failed: ' + err.message + ')';
+          });
+        }
         e.target.reset();
         renderTable();
       });
 
-      renderTable();
+      if (typeof window.SocialWavesData.ready === 'function') {
+        window.SocialWavesData.ready().then(renderTable);
+      } else {
+        renderTable();
+      }
     })();
   </script>
 </body>

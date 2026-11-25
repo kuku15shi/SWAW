@@ -200,7 +200,17 @@
 
       publishBtn: document.getElementById('st-publish-btn'),
       publishStatus: document.getElementById('st-publish-status'),
-      savedList: document.getElementById('st-saved-list')
+      savedList: document.getElementById('st-saved-list'),
+
+      ghSyncBox: document.getElementById('gh-sync-box'),
+      ghOwner: document.getElementById('gh-owner'),
+      ghRepo: document.getElementById('gh-repo'),
+      ghBranch: document.getElementById('gh-branch'),
+      ghToken: document.getElementById('gh-token'),
+      ghSaveTestBtn: document.getElementById('gh-save-test-btn'),
+      ghDisconnectBtn: document.getElementById('gh-disconnect-btn'),
+      ghStatusPill: document.getElementById('gh-status-pill'),
+      ghTestMsg: document.getElementById('gh-test-msg')
     };
 
     const RESERVED_SLUGS = new Set([
@@ -733,6 +743,8 @@
             els.generatedBox.style.display = 'none';
             els.uploadedBox.style.display = 'block';
             state.customFrameDataUrl = optimized.dataUrl;
+            state.customFrameUrl = '';
+            if (els.frameUrl) els.frameUrl.value = '';
             state.uploadedFrameImg = img;
             state.frameWidth = img.naturalWidth || optimized.width || 800;
             state.frameHeight = img.naturalHeight || optimized.height || 1000;
@@ -981,40 +993,80 @@
 
       els.savedList.querySelectorAll('[data-delete-id]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          window.SocialWavesData.deleteCustomCampaign(btn.dataset.deleteId);
+          const delId = btn.dataset.deleteId;
+          window.SocialWavesData.deleteCustomCampaign(delId);
+          if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+            window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
+          }
           renderSavedCustomList();
         });
       });
     }
 
-    els.publishBtn.addEventListener('click', function () {
-      const payload = buildCampaignPayload();
-      els.id.value = payload.id;
-      const saveResult = window.SocialWavesData.saveCustomCampaign(payload);
-      if (saveResult && saveResult.ok === false) {
-        els.publishStatus.innerHTML =
-          '<span style="color:#dc2626;font-weight:700;">Save failed: ' +
-          window.escapeHtml(saveResult.error || 'Could not save campaign.') +
-          '</span>';
-        return;
+    function updateGitHubUi() {
+      if (!window.SocialWavesGitHub) return;
+      const cfg = window.SocialWavesGitHub.getConfig();
+      if (els.ghOwner) els.ghOwner.value = cfg.owner || '';
+      if (els.ghRepo) els.ghRepo.value = cfg.repo || '';
+      if (els.ghBranch) els.ghBranch.value = cfg.branch || 'main';
+      if (els.ghToken) els.ghToken.value = cfg.token || '';
+      const connected = window.SocialWavesGitHub.isConfigured();
+      if (els.ghStatusPill) {
+        els.ghStatusPill.textContent = connected ? ('Auto-Upload: ' + cfg.owner + '/' + cfg.repo) : 'Not Connected';
+        els.ghStatusPill.style.background = connected ? '#d1fae5' : '#fef3c7';
+        els.ghStatusPill.style.color = connected ? '#047857' : '#92400e';
       }
-      const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
-      const fullShareUrl = new URL(launchUrl, window.location.href).href;
-      const hasOversizedLocalPng = Boolean(payload.customFrameDataUrl && payload.customFrameDataUrl.length > 14000 && !payload.customFrameUrl);
-
-      let html =
-        '<div>Saved &amp; Published! <a href="' + launchUrl +
-        '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
-        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
-        '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
-        '</div>';
-
-      if (hasOversizedLocalPng) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Note: Large uploaded PNG frames stay in this browser only. For public GitHub links, either paste a Frame Image URL above or add the copied JSON into <code>js/campaigns-data.js</code>.</div>';
+      if (els.publishBtn) {
+        els.publishBtn.textContent = connected ? 'Publish & Upload to GitHub' : 'Publish Custom Campaign';
       }
-      els.publishStatus.innerHTML = html;
+    }
 
+    if (window.SocialWavesGitHub) {
+      updateGitHubUi();
+
+      if (els.ghSaveTestBtn) {
+        els.ghSaveTestBtn.addEventListener('click', function () {
+          const cfg = {
+            owner: els.ghOwner ? els.ghOwner.value : '',
+            repo: els.ghRepo ? els.ghRepo.value : '',
+            branch: els.ghBranch ? els.ghBranch.value : 'main',
+            token: els.ghToken ? els.ghToken.value : ''
+          };
+          if (els.ghTestMsg) {
+            els.ghTestMsg.style.color = '#64748b';
+            els.ghTestMsg.textContent = 'Checking GitHub repo...';
+          }
+          window.SocialWavesGitHub.testConnection(cfg).then(function (repoInfo) {
+            updateGitHubUi();
+            if (els.ghTestMsg) {
+              els.ghTestMsg.style.color = '#047857';
+              els.ghTestMsg.textContent = 'Connected to ' + (repoInfo.full_name || (cfg.owner + '/' + cfg.repo)) + '!';
+            }
+          }).catch(function (err) {
+            updateGitHubUi();
+            if (els.ghTestMsg) {
+              els.ghTestMsg.style.color = '#dc2626';
+              els.ghTestMsg.textContent = err.message || 'Connection failed.';
+            }
+          });
+        });
+      }
+
+      if (els.ghDisconnectBtn) {
+        els.ghDisconnectBtn.addEventListener('click', function () {
+          const cfg = window.SocialWavesGitHub.getConfig();
+          cfg.token = '';
+          window.SocialWavesGitHub.saveConfig(cfg);
+          updateGitHubUi();
+          if (els.ghTestMsg) {
+            els.ghTestMsg.style.color = '#64748b';
+            els.ghTestMsg.textContent = 'Token cleared.';
+          }
+        });
+      }
+    }
+
+    function wirePublishActionButtons(fullShareUrl, payload) {
       const copyLinkBtn = document.getElementById('copy-hosted-link-btn');
       if (copyLinkBtn) {
         copyLinkBtn.addEventListener('click', function () {
@@ -1043,78 +1095,166 @@
           }
         });
       }
+    }
 
+    els.publishBtn.addEventListener('click', function () {
+      const payload = buildCampaignPayload();
+      payload._updatedAt = Date.now();
+      els.id.value = payload.id;
+
+      const saveResult = window.SocialWavesData.saveCustomCampaign(payload);
+      if (saveResult && saveResult.ok === false) {
+        els.publishStatus.innerHTML =
+          '<span style="color:#dc2626;font-weight:700;">Save failed: ' +
+          window.escapeHtml(saveResult.error || 'Could not save campaign.') +
+          '</span>';
+        return;
+      }
+
+      const canAutoGitHub = Boolean(window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured());
+      if (canAutoGitHub) {
+        els.publishBtn.disabled = true;
+        els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">Uploading to GitHub...</span>';
+
+        window.SocialWavesGitHub.publishCampaignToGitHub(payload, function (stepMsg) {
+          els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">' + window.escapeHtml(stepMsg) + '</span>';
+        }).then(function (res) {
+          els.publishBtn.disabled = false;
+          const synced = res.campaign;
+          window.SocialWavesData.saveCustomCampaign(synced);
+          const launchUrl = 'campaign?id=' + encodeURIComponent(synced.id);
+          const liveUrl = res.pagesBase + launchUrl;
+
+          els.publishStatus.innerHTML =
+            '<div style="color:#047857;font-weight:700;">Live on GitHub! Image &amp; campaign uploaded automatically.</div>' +
+            '<div style="margin-top:6px;"><a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">Open Live Campaign (' + window.escapeHtml(synced.id) + ') &rarr;</a></div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
+            '</div>';
+          wirePublishActionButtons(liveUrl, synced);
+          renderSavedCustomList();
+        }).catch(function (err) {
+          els.publishBtn.disabled = false;
+          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
+          const fullShareUrl = new URL(launchUrl, window.location.href).href;
+          els.publishStatus.innerHTML =
+            '<div style="color:#dc2626;font-weight:700;">GitHub auto-upload failed: ' + window.escapeHtml(err.message || 'Unknown error') + '</div>' +
+            '<div style="margin-top:4px;font-size:13px;">Saved locally. <a href="' + launchUrl + '" style="font-weight:700;text-decoration:underline;">Open Local Preview &rarr;</a></div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
+            '</div>';
+          wirePublishActionButtons(fullShareUrl, payload);
+          renderSavedCustomList();
+        });
+        return;
+      }
+
+      const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
+      const fullShareUrl = new URL(launchUrl, window.location.href).href;
+      const hasOversizedLocalPng = Boolean(payload.customFrameDataUrl && payload.customFrameDataUrl.length > 14000 && !payload.customFrameUrl);
+
+      let html =
+        '<div>Saved to this browser! <a href="' + launchUrl +
+        '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
+        '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
+        '</div>';
+
+      if (hasOversizedLocalPng) {
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Connect your GitHub Token above for automatic PNG frame upload to <code>frames/</code>, otherwise uploaded PNGs stay in this browser only.</div>';
+      }
+      els.publishStatus.innerHTML = html;
+      wirePublishActionButtons(fullShareUrl, payload);
       renderSavedCustomList();
     });
 
-    const editId = new URLSearchParams(window.location.search).get('edit');
-    if (editId) {
+    function loadExistingCampaignForEdit() {
+      const editId = new URLSearchParams(window.location.search).get('edit');
+      if (!editId) return;
       const existing = window.SocialWavesData.getCampaignById(editId);
-      if (existing) {
-        state.id = existing.id;
-        state.title = existing.title;
-        state.subtitle = existing.subtitle || '';
-        state.badge = existing.badge || 'Custom Campaign';
-        state.headerTag = existing.headerTag || existing.title.toUpperCase();
-        state.footerText = existing.footerText || '';
-        state.frameWidth = existing.frameWidth || 800;
-        state.frameHeight = existing.frameHeight || 1000;
-        if (existing.palette) state.palette = Object.assign({}, existing.palette);
-        if (existing.slot) state.slot = Object.assign({ rotation: 0, layer: 'behind' }, existing.slot);
-        state.lockedRatio = state.slot.w / Math.max(1, state.slot.h);
+      if (!existing) return;
+      state.id = existing.id;
+      state.title = existing.title;
+      state.subtitle = existing.subtitle || '';
+      state.badge = existing.badge || 'Custom Campaign';
+      state.headerTag = existing.headerTag || existing.title.toUpperCase();
+      state.footerText = existing.footerText || '';
+      state.frameWidth = existing.frameWidth || 800;
+      state.frameHeight = existing.frameHeight || 1000;
+      if (existing.palette) state.palette = Object.assign({}, existing.palette);
+      if (existing.slot) state.slot = Object.assign({ rotation: 0, layer: 'behind' }, existing.slot);
+      state.lockedRatio = state.slot.w / Math.max(1, state.slot.h);
 
-        if (existing.textSlots && existing.textSlots.length) {
-          state.textFields = existing.textSlots.map(function (ts, idx) {
-            const matchedField = (existing.fields || []).find(function (f) { return f.name === ts.field; });
-            return createTextFieldConfig({
-              key: ts.field || ('field_' + idx),
-              label: matchedField ? matchedField.label : (ts.staticValue ? 'Banner Text' : ('Field ' + (idx + 1))),
-              type: ts.staticValue ? 'static' : ((matchedField && matchedField.type) || 'text'),
-              required: matchedField ? Boolean(matchedField.required) : false,
-              optionsText: matchedField && matchedField.options ? matchedField.options.join(', ') : '',
-              sample: ts.staticValue || (matchedField ? matchedField.label : 'Sample'),
-              prefix: ts.prefix || '',
-              x: ts.x,
-              y: ts.y,
-              fontSize: ts.fontSize || 34,
-              fontFamily: ts.fontFamily || 'Montserrat, sans-serif',
-              fontWeight: ts.fontWeight || '700',
-              textTransform: ts.textTransform || 'none',
-              color: ts.color || '#ffffff',
-              align: ts.align || 'center',
-              maxWidth: ts.maxWidth || 680,
-              rotation: ts.rotation || 0,
-              shadow: ts.shadow !== false,
-              bgEnabled: Boolean(ts.bgEnabled),
-              bgColor: ts.bgColor || '#047857'
+      if (existing.textSlots && existing.textSlots.length) {
+        state.textFields = existing.textSlots.map(function (ts, idx) {
+          const matchedField = (existing.fields || []).find(function (f) { return f.name === ts.field; });
+          return createTextFieldConfig({
+            key: ts.field || ('field_' + idx),
+            label: matchedField ? matchedField.label : (ts.staticValue ? 'Banner Text' : ('Field ' + (idx + 1))),
+            type: ts.staticValue ? 'static' : ((matchedField && matchedField.type) || 'text'),
+            required: matchedField ? Boolean(matchedField.required) : false,
+            optionsText: matchedField && matchedField.options ? matchedField.options.join(', ') : '',
+            sample: ts.staticValue || (matchedField ? matchedField.label : 'Sample'),
+            prefix: ts.prefix || '',
+            x: ts.x,
+            y: ts.y,
+            fontSize: ts.fontSize || 34,
+            fontFamily: ts.fontFamily || 'Montserrat, sans-serif',
+            fontWeight: ts.fontWeight || '700',
+            textTransform: ts.textTransform || 'none',
+            color: ts.color || '#ffffff',
+            align: ts.align || 'center',
+            maxWidth: ts.maxWidth || 680,
+            rotation: ts.rotation || 0,
+            shadow: ts.shadow !== false,
+            bgEnabled: Boolean(ts.bgEnabled),
+            bgColor: ts.bgColor || '#047857'
+          });
+        });
+      }
+
+      const existingFrameSrc = existing.customFrameDataUrl || existing.customFrameUrl || existing.customFrameFallbackUrl;
+      if (existingFrameSrc) {
+        state.frameMode = 'uploaded';
+        state.customFrameDataUrl = existing.customFrameDataUrl || null;
+        state.customFrameUrl = existing.customFrameUrl || '';
+        if (els.frameUrl) els.frameUrl.value = state.customFrameUrl;
+        document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
+        els.generatedBox.style.display = 'none';
+        els.uploadedBox.style.display = 'block';
+        loadImage(existingFrameSrc).then(function (img) {
+          state.uploadedFrameImg = img;
+          syncControlBounds();
+          syncInputsFromState();
+          renderTextFieldEditors();
+          drawStudioCanvas();
+        }).catch(function () {
+          if (existing.customFrameFallbackUrl && existing.customFrameFallbackUrl !== existingFrameSrc) {
+            loadImage(existing.customFrameFallbackUrl).then(function (img) {
+              state.uploadedFrameImg = img;
+              syncControlBounds();
+              syncInputsFromState();
+              renderTextFieldEditors();
+              drawStudioCanvas();
             });
-          });
-        }
-
-        const existingFrameSrc = existing.customFrameDataUrl || existing.customFrameUrl;
-        if (existingFrameSrc) {
-          state.frameMode = 'uploaded';
-          state.customFrameDataUrl = existing.customFrameDataUrl || null;
-          state.customFrameUrl = existing.customFrameUrl || '';
-          if (els.frameUrl) els.frameUrl.value = state.customFrameUrl;
-          document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;
-          els.generatedBox.style.display = 'none';
-          els.uploadedBox.style.display = 'block';
-          loadImage(existingFrameSrc).then(function (img) {
-            state.uploadedFrameImg = img;
-            syncControlBounds();
-            syncInputsFromState();
-            renderTextFieldEditors();
-            drawStudioCanvas();
-          });
-        }
+          }
+        });
       }
     }
 
-    syncControlBounds();
-    syncInputsFromState();
-    renderTextFieldEditors();
-    refreshGeneratedOverlayAndDraw();
-    renderSavedCustomList();
+    const initReady = typeof window.SocialWavesData.ready === 'function'
+      ? window.SocialWavesData.ready()
+      : Promise.resolve();
+    initReady.then(function () {
+      loadExistingCampaignForEdit();
+      syncControlBounds();
+      syncInputsFromState();
+      renderTextFieldEditors();
+      refreshGeneratedOverlayAndDraw();
+      renderSavedCustomList();
+    });
   });
 })();

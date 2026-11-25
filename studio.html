@@ -246,6 +246,40 @@
         </div>
 
         <div class="panel-section">
+          <h3>
+            <span>4. Self GitHub Auto-Upload</span>
+            <span id="gh-status-pill" style="font-size:11px;padding:3px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:700;">Not Connected</span>
+          </h3>
+          <details id="gh-sync-box" style="background:rgba(248,250,252,0.82);border:1px solid rgba(4,120,87,0.14);border-radius:14px;padding:12px 14px;margin-bottom:14px;">
+            <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#047857;user-select:none;">Connect GitHub Token for 1-Click Auto-Upload (Images &amp; Campaigns)</summary>
+            <p style="font-size:12px;color:#64748b;margin:8px 0 10px;line-height:1.45;">
+              Connect once so Studio automatically uploads your frame PNGs into <code>frames/</code> and updates <code>campaigns.json</code> in your GitHub repo. Your token stays only in this browser.
+            </p>
+            <div class="grid-3">
+              <div class="st-field">
+                <label for="gh-owner">GitHub Username</label>
+                <input type="text" id="gh-owner" placeholder="kuku15shi">
+              </div>
+              <div class="st-field">
+                <label for="gh-repo">Repository</label>
+                <input type="text" id="gh-repo" placeholder="SWAW">
+              </div>
+              <div class="st-field">
+                <label for="gh-branch">Branch</label>
+                <input type="text" id="gh-branch" placeholder="main">
+              </div>
+            </div>
+            <div class="st-field">
+              <label for="gh-token">GitHub Personal Access Token (<a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener" style="color:#047857;text-decoration:underline;">Create Fine-Grained Token with Contents: Read &amp; Write</a>)</label>
+              <input type="password" id="gh-token" placeholder="github_pat_... or ghp_..." style="width:100%;padding:9px 11px;border:1px solid rgba(4,120,87,0.16);background:rgba(255,255,255,0.78);color:#17211f;border-radius:10px;font-size:13px;font-family:inherit;">
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <button type="button" class="ctrl-mini-btn" id="gh-save-test-btn">Save &amp; Connect GitHub</button>
+              <button type="button" class="ctrl-mini-btn" id="gh-disconnect-btn" style="color:#dc2626;">Clear Token</button>
+              <span id="gh-test-msg" style="font-size:12px;color:#047857;"></span>
+            </div>
+          </details>
+
           <button type="button" class="publish-btn" id="st-publish-btn">Publish Custom Campaign</button>
           <p id="st-publish-status" style="margin: 10px 0 0; font-size: 14px; color: #16a34a; text-align: center;"></p>
         </div>
@@ -259,6 +293,7 @@
   </main>
 
   <script src="js/campaigns-data.js"></script>
+  <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>
   <script src="js/studio.js"></script>
 </body>

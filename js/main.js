@@ -67,9 +67,28 @@
         }
       });
 
-      card.innerHTML =
-        '<div class="pic"><img src="' + previewUrl + '" alt="' + escapeHtml(c.title) + '"></div>' +
-        '<div class="member-info"><h4>' + escapeHtml(c.title) + '</h4><span>' + escapeHtml(c.badge || '') + '</span></div>';
+      const pic = document.createElement('div');
+      pic.className = 'pic';
+      const img = document.createElement('img');
+      img.src = previewUrl;
+      img.alt = c.title || 'Campaign';
+      img.addEventListener('error', function () {
+        if (c.customFrameFallbackUrl && img.src !== c.customFrameFallbackUrl && !img.dataset.triedFallback) {
+          img.dataset.triedFallback = '1';
+          img.src = c.customFrameFallbackUrl;
+        } else if (!img.dataset.triedGen) {
+          img.dataset.triedGen = '1';
+          img.src = window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+        }
+      });
+      pic.appendChild(img);
+
+      const info = document.createElement('div');
+      info.className = 'member-info';
+      info.innerHTML = '<h4>' + escapeHtml(c.title) + '</h4><span>' + escapeHtml(c.badge || '') + '</span>';
+
+      card.appendChild(pic);
+      card.appendChild(info);
 
       slide.appendChild(card);
       track.appendChild(slide);
@@ -252,7 +271,11 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     initHeaderAndNav();
-    initActiveCampaignsCarousel();
+    if (window.SocialWavesData && typeof window.SocialWavesData.ready === 'function') {
+      window.SocialWavesData.ready().then(initActiveCampaignsCarousel);
+    } else {
+      initActiveCampaignsCarousel();
+    }
     initTestimonialsCarousel();
     initPricingTabs();
     initFaqAccordion();

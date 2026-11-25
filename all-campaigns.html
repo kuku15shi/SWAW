@@ -87,7 +87,7 @@
     (function () {
       const grid = document.getElementById('all-campaigns-grid');
       const searchInput = document.getElementById('campaign-search');
-      const campaigns = window.SocialWavesData.getAllCampaigns();
+      let campaigns = window.SocialWavesData.getAllCampaigns();
 
       function render(filterText) {
         const q = (filterText || '').trim().toLowerCase();
@@ -104,9 +104,26 @@
           card.addEventListener('click', function () {
             window.location.href = launchUrl;
           });
-          card.innerHTML =
-            '<div class="pic"><img src="' + previewUrl + '" alt="' + window.escapeHtml(c.title) + '"></div>' +
-            '<div class="member-info"><h4>' + window.escapeHtml(c.title) + '</h4><span>' + window.escapeHtml(c.badge || '') + '</span></div>';
+          const pic = document.createElement('div');
+          pic.className = 'pic';
+          const img = document.createElement('img');
+          img.src = previewUrl;
+          img.alt = c.title || 'Campaign';
+          img.addEventListener('error', function () {
+            if (c.customFrameFallbackUrl && img.src !== c.customFrameFallbackUrl && !img.dataset.triedFallback) {
+              img.dataset.triedFallback = '1';
+              img.src = c.customFrameFallbackUrl;
+            } else if (!img.dataset.triedGen) {
+              img.dataset.triedGen = '1';
+              img.src = window.SocialWavesData.renderFrameDataUrl(c, { showPlaceholder: true });
+            }
+          });
+          pic.appendChild(img);
+          const info = document.createElement('div');
+          info.className = 'member-info';
+          info.innerHTML = '<h4>' + window.escapeHtml(c.title) + '</h4><span>' + window.escapeHtml(c.badge || '') + '</span>';
+          card.appendChild(pic);
+          card.appendChild(info);
           grid.appendChild(card);
         });
 
@@ -120,6 +137,12 @@
       });
 
       render('');
+      if (typeof window.SocialWavesData.ready === 'function') {
+        window.SocialWavesData.ready().then(function () {
+          campaigns = window.SocialWavesData.getAllCampaigns();
+          render(searchInput.value);
+        });
+      }
     })();
   </script>
 </body>

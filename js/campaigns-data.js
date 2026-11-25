@@ -272,18 +272,89 @@
     }
   }
 
+  let REMOTE_CAMPAIGNS = [];
+  let readyPromise = null;
+
+  function loadRemoteCampaigns() {
+    if (typeof fetch !== 'function') return Promise.resolve([]);
+    const urls = ['campaigns.json?t=' + Date.now()];
+    try {
+      const loc = global.location;
+      if (loc && /\.github\.io$/i.test(loc.hostname || '')) {
+        const owner = loc.hostname.split('.')[0];
+        const segs = (loc.pathname || '').split('/').filter(Boolean);
+        const repo = segs.length ? segs[0] : '';
+        if (owner && repo) {
+          urls.unshift(
+            'https://raw.githubusercontent.com/' + encodeURIComponent(owner) + '/' +
+            encodeURIComponent(repo) + '/main/campaigns.json?t=' + Date.now()
+          );
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    function tryUrl(idx) {
+      if (idx >= urls.length) return Promise.resolve([]);
+      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2500) : null;
+      return fetch(urls[idx], { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) {
+          if (timer) clearTimeout(timer);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          if (Array.isArray(data)) {
+            REMOTE_CAMPAIGNS = data;
+            return REMOTE_CAMPAIGNS;
+          }
+          return [];
+        })
+        .catch(function () {
+          if (timer) clearTimeout(timer);
+          return tryUrl(idx + 1);
+        });
+    }
+
+    return tryUrl(0);
+  }
+
+  function ready() {
+    if (!readyPromise) {
+      readyPromise = loadRemoteCampaigns();
+    }
+    return readyPromise;
+  }
+
+  function setRemoteCampaigns(list) {
+    REMOTE_CAMPAIGNS = Array.isArray(list) ? list : [];
+  }
+
   function isCustomCampaign(id) {
-    return getCustomCampaigns().some(function (c) { return c.id === id; });
+    return getCustomCampaigns().some(function (c) { return c.id === id; }) ||
+      REMOTE_CAMPAIGNS.some(function (c) { return c && c.id === id; });
   }
 
   function getAllCampaigns() {
-    const merged = getCustomCampaigns().concat(DEFAULT_CAMPAIGNS);
-    const seen = new Set();
-    return merged.filter(function (c) {
-      if (!c || !c.id || seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
+    const byId = {};
+    const order = [];
+    const localList = getCustomCampaigns();
+    const allSources = localList.concat(REMOTE_CAMPAIGNS).concat(DEFAULT_CAMPAIGNS);
+
+    allSources.forEach(function (c) {
+      if (!c || !c.id) return;
+      const existing = byId[c.id];
+      if (!existing) {
+        byId[c.id] = c;
+        order.push(c.id);
+      } else if ((Number(c._updatedAt) || 0) > (Number(existing._updatedAt) || 0)) {
+        byId[c.id] = c;
+      }
     });
+
+    return order.map(function (id) { return byId[id]; });
   }
 
   function encodeBase64Url(str) {
@@ -338,6 +409,9 @@
     };
     if (campaign.customFrameUrl) {
       compact.customFrameUrl = campaign.customFrameUrl;
+    }
+    if (campaign.customFrameFallbackUrl) {
+      compact.customFrameFallbackUrl = campaign.customFrameFallbackUrl;
     }
     if (campaign.customFrameDataUrl && campaign.customFrameDataUrl.length <= maxDataUrlLen) {
       compact.customFrameDataUrl = campaign.customFrameDataUrl;
@@ -634,6 +708,9 @@
 
   global.SocialWavesData = {
     DEFAULT_CAMPAIGNS: DEFAULT_CAMPAIGNS,
+    ready: ready,
+    loadRemoteCampaigns: loadRemoteCampaigns,
+    setRemoteCampaigns: setRemoteCampaigns,
     getAllCampaigns: getAllCampaigns,
     getCampaignById: getCampaignById,
     getActiveCampaignFromUrl: getActiveCampaignFromUrl,
