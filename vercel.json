@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/:id((?!api|all-campaigns|campaign|studio|login|dashboard|terms|policy|css|js|frames|assets|404)[A-Za-z0-9_-]+)",
+      "destination": "/campaign?id=:id"
+    }
+  ]
+}

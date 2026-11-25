@@ -261,7 +261,12 @@
           btn.addEventListener('click', function () {
             const delId = btn.dataset.delId;
             window.SocialWavesData.deleteCustomCampaign(delId);
-            if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+            const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+              ? window.SocialWavesData.getServerStatus()
+              : { configured: false };
+            if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
+              window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
+            } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
               window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
             }
             renderTable();
@@ -322,7 +327,22 @@
         const shareHref = window.SocialWavesData.getCampaignLaunchUrl(newPayload);
         const msgEl = document.getElementById('create-msg');
         msgEl.innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" saved! <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
-        if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+        const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+          ? window.SocialWavesData.getServerStatus()
+          : { configured: false };
+        if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
+          msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to cloud...)</span>';
+          window.SocialWavesData.saveCampaignToServer(newPayload).then(function (res) {
+            const synced = res.campaign || newPayload;
+            window.SocialWavesData.saveCustomCampaign(synced);
+            const liveUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
+            msgEl.innerHTML = 'Live! Short Link: <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + liveUrl + '</a>';
+            renderTable();
+          }).catch(function (err) {
+            const s = document.getElementById('dash-gh-sync');
+            if (s) s.textContent = '(Cloud save failed: ' + err.message + ')';
+          });
+        } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
           msgEl.innerHTML += ' <span id="dash-gh-sync">(Uploading to GitHub...)</span>';
           window.SocialWavesGitHub.publishCampaignToGitHub(newPayload).then(function (res) {
             const synced = res.campaign;

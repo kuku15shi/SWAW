@@ -1051,7 +1051,12 @@
         btn.addEventListener('click', function () {
           const delId = btn.dataset.deleteId;
           window.SocialWavesData.deleteCustomCampaign(delId);
-          if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
+          const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+            ? window.SocialWavesData.getServerStatus()
+            : { configured: false };
+          if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
+            window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
+          } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
             window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
           }
           renderSavedCustomList();
@@ -1060,20 +1065,40 @@
     }
 
     function updateGitHubUi() {
-      if (!window.SocialWavesGitHub) return;
-      const cfg = window.SocialWavesGitHub.getConfig();
-      if (els.ghOwner) els.ghOwner.value = cfg.owner || '';
-      if (els.ghRepo) els.ghRepo.value = cfg.repo || '';
-      if (els.ghBranch) els.ghBranch.value = cfg.branch || 'main';
-      if (els.ghToken) els.ghToken.value = cfg.token || '';
-      const connected = window.SocialWavesGitHub.isConfigured();
+      const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+        ? window.SocialWavesData.getServerStatus()
+        : { available: false, configured: false, mode: 'static' };
+      const cfg = window.SocialWavesGitHub ? window.SocialWavesGitHub.getConfig() : {};
+      if (window.SocialWavesGitHub) {
+        if (els.ghOwner) els.ghOwner.value = cfg.owner || '';
+        if (els.ghRepo) els.ghRepo.value = cfg.repo || '';
+        if (els.ghBranch) els.ghBranch.value = cfg.branch || 'main';
+        if (els.ghToken) els.ghToken.value = cfg.token || '';
+      }
+      const ghConnected = Boolean(window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured());
       if (els.ghStatusPill) {
-        els.ghStatusPill.textContent = connected ? ('GitHub Sync: ' + cfg.owner + '/' + cfg.repo) : 'Standalone Mode';
-        els.ghStatusPill.style.background = connected ? '#d1fae5' : '#e2e8f0';
-        els.ghStatusPill.style.color = connected ? '#047857' : '#475569';
+        if (srv.configured) {
+          els.ghStatusPill.textContent = 'Vercel Cloud Ready (No Token)';
+          els.ghStatusPill.style.background = '#d1fae5';
+          els.ghStatusPill.style.color = '#047857';
+        } else if (srv.available) {
+          els.ghStatusPill.textContent = 'Vercel (Attach Blob Store)';
+          els.ghStatusPill.style.background = '#fef3c7';
+          els.ghStatusPill.style.color = '#92400e';
+        } else if (ghConnected) {
+          els.ghStatusPill.textContent = 'GitHub Sync: ' + cfg.owner + '/' + cfg.repo;
+          els.ghStatusPill.style.background = '#d1fae5';
+          els.ghStatusPill.style.color = '#047857';
+        } else {
+          els.ghStatusPill.textContent = 'Standalone Mode';
+          els.ghStatusPill.style.background = '#e2e8f0';
+          els.ghStatusPill.style.color = '#475569';
+        }
       }
       if (els.publishBtn) {
-        els.publishBtn.textContent = connected ? 'Publish & Upload to GitHub' : 'Publish Custom Campaign';
+        if (srv.configured) els.publishBtn.textContent = 'Publish Live (Short URL)';
+        else if (ghConnected) els.publishBtn.textContent = 'Publish & Upload to GitHub';
+        else els.publishBtn.textContent = 'Publish Custom Campaign';
       }
     }
 
@@ -1164,6 +1189,45 @@
           '<span style="color:#dc2626;font-weight:700;">Save failed: ' +
           window.escapeHtml(saveResult.error || 'Could not save campaign.') +
           '</span>';
+        return;
+      }
+
+      const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+        ? window.SocialWavesData.getServerStatus()
+        : { configured: false };
+      if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
+        els.publishBtn.disabled = true;
+        els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">Saving campaign &amp; image to cloud (no token)...</span>';
+
+        window.SocialWavesData.saveCampaignToServer(payload).then(function (res) {
+          els.publishBtn.disabled = false;
+          const synced = res.campaign || payload;
+          window.SocialWavesData.saveCustomCampaign(synced);
+          const shortUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
+
+          els.publishStatus.innerHTML =
+            '<div style="color:#047857;font-weight:700;">Live! Short URL &amp; image saved (no token needed).</div>' +
+            '<div style="margin-top:6px;"><a href="' + shortUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + window.escapeHtml(shortUrl) + '</a></div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Short Link</button>' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON</button>' +
+            '</div>';
+          wirePublishActionButtons(shortUrl, synced);
+          renderSavedCustomList();
+        }).catch(function (err) {
+          els.publishBtn.disabled = false;
+          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
+          const fullShareUrl = new URL(launchUrl, window.location.href).href;
+          els.publishStatus.innerHTML =
+            '<div style="color:#dc2626;font-weight:700;">Cloud save failed: ' + window.escapeHtml(err.message || 'Server error') + '</div>' +
+            '<div style="margin-top:4px;font-size:13px;">Saved locally. <a href="' + launchUrl + '" style="font-weight:700;text-decoration:underline;">Open Local Preview &rarr;</a></div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Share Link</button>' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON</button>' +
+            '</div>';
+          wirePublishActionButtons(fullShareUrl, payload);
+          renderSavedCustomList();
+        });
         return;
       }
 
@@ -1312,6 +1376,7 @@
       ? window.SocialWavesData.ready()
       : Promise.resolve();
     initReady.then(function () {
+      updateGitHubUi();
       loadExistingCampaignForEdit();
       syncControlBounds();
       syncInputsFromState();

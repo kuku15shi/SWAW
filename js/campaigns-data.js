@@ -273,52 +273,120 @@
   }
 
   let REMOTE_CAMPAIGNS = [];
+  let SERVER_STATUS = { available: false, configured: false, mode: 'static' };
   let readyPromise = null;
+
+  function fetchWithTimeout(url, opts, ms) {
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, ms || 3000) : null;
+    const finalOpts = Object.assign({ cache: 'no-store', signal: ctrl ? ctrl.signal : undefined }, opts || {});
+    return fetch(url, finalOpts).finally(function () {
+      if (timer) clearTimeout(timer);
+    });
+  }
 
   function loadRemoteCampaigns() {
     if (typeof fetch !== 'function') return Promise.resolve([]);
-    const urls = ['campaigns.json?t=' + Date.now()];
-    try {
-      const loc = global.location;
-      if (loc && /\.github\.io$/i.test(loc.hostname || '')) {
-        const owner = loc.hostname.split('.')[0];
-        const segs = (loc.pathname || '').split('/').filter(Boolean);
-        const repo = segs.length ? segs[0] : '';
-        if (owner && repo) {
-          urls.unshift(
-            'https://raw.githubusercontent.com/' + encodeURIComponent(owner) + '/' +
-            encodeURIComponent(repo) + '/main/campaigns.json?t=' + Date.now()
-          );
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
 
-    function tryUrl(idx) {
-      if (idx >= urls.length) return Promise.resolve([]);
-      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-      const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2500) : null;
-      return fetch(urls[idx], { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
-        .then(function (r) {
-          if (timer) clearTimeout(timer);
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
-        .then(function (data) {
-          if (Array.isArray(data)) {
-            REMOTE_CAMPAIGNS = data;
+    const tryStaticJson = function () {
+      const urls = ['campaigns.json?t=' + Date.now()];
+      try {
+        const loc = global.location;
+        if (loc && /\.github\.io$/i.test(loc.hostname || '')) {
+          const owner = loc.hostname.split('.')[0];
+          const segs = (loc.pathname || '').split('/').filter(Boolean);
+          const repo = segs.length ? segs[0] : '';
+          if (owner && repo) {
+            urls.unshift(
+              'https://raw.githubusercontent.com/' + encodeURIComponent(owner) + '/' +
+              encodeURIComponent(repo) + '/main/campaigns.json?t=' + Date.now()
+            );
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      function tryUrl(idx) {
+        if (idx >= urls.length) return Promise.resolve([]);
+        return fetchWithTimeout(urls[idx], null, 2500)
+          .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function (data) {
+            if (Array.isArray(data)) {
+              REMOTE_CAMPAIGNS = data;
+              return REMOTE_CAMPAIGNS;
+            }
+            return [];
+          })
+          .catch(function () {
+            return tryUrl(idx + 1);
+          });
+      }
+      return tryUrl(0);
+    };
+
+    return fetchWithTimeout('api/campaigns?t=' + Date.now(), null, 3000)
+      .then(function (r) {
+        const ct = (r.headers && r.headers.get && r.headers.get('content-type')) || '';
+        if (!r.ok || ct.indexOf('application/json') === -1) {
+          throw new Error('No API route');
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.ok) {
+          SERVER_STATUS = {
+            available: true,
+            configured: Boolean(data.configured),
+            mode: data.mode || 'none'
+          };
+          if (data.configured && Array.isArray(data.campaigns)) {
+            REMOTE_CAMPAIGNS = data.campaigns;
             return REMOTE_CAMPAIGNS;
           }
-          return [];
-        })
-        .catch(function () {
-          if (timer) clearTimeout(timer);
-          return tryUrl(idx + 1);
-        });
-    }
+        }
+        return tryStaticJson();
+      })
+      .catch(function () {
+        SERVER_STATUS = { available: false, configured: false, mode: 'static' };
+        return tryStaticJson();
+      });
+  }
 
-    return tryUrl(0);
+  function getServerStatus() {
+    return Object.assign({}, SERVER_STATUS);
+  }
+
+  function saveCampaignToServer(campaign) {
+    return fetch('api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign: campaign })
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok || !data || !data.ok) {
+          throw new Error((data && data.error) || ('Server HTTP ' + r.status));
+        }
+        if (data.campaign) {
+          const next = REMOTE_CAMPAIGNS.filter(function (c) { return c && c.id !== data.campaign.id; });
+          next.unshift(data.campaign);
+          REMOTE_CAMPAIGNS = next;
+        }
+        return data;
+      });
+    });
+  }
+
+  function deleteCampaignOnServer(id) {
+    return fetch('api/campaigns?id=' + encodeURIComponent(id), {
+      method: 'DELETE'
+    }).then(function (r) {
+      REMOTE_CAMPAIGNS = REMOTE_CAMPAIGNS.filter(function (c) { return c && c.id !== id; });
+      return r.ok;
+    });
   }
 
   function ready() {
@@ -811,6 +879,9 @@
     ready: ready,
     loadRemoteCampaigns: loadRemoteCampaigns,
     setRemoteCampaigns: setRemoteCampaigns,
+    getServerStatus: getServerStatus,
+    saveCampaignToServer: saveCampaignToServer,
+    deleteCampaignOnServer: deleteCampaignOnServer,
     getAllCampaigns: getAllCampaigns,
     getCampaignById: getCampaignById,
     getActiveCampaignFromUrl: getActiveCampaignFromUrl,
