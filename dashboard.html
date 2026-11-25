@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - SocialWaves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <style>
+    .dash-wrap { max-width: 1140px; margin: 104px auto 60px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    .dash-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+    .dash-card { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 26px; box-shadow: 0 12px 32px rgba(4,120,87,0.07), 0 2px 8px rgba(23,33,31,0.04); }
+    .dash-card h3 { color: #17211f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(4,120,87,0.1); background: linear-gradient(135deg, #047857 0%, #059669 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .dash-field { margin-bottom: 14px; }
+    .dash-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #17211f; }
+    .dash-field input, .dash-field select { width: 100%; padding: 10px 12px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.78); color: #17211f; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
+    .dash-field input:focus, .dash-field select:focus { background: #ffffff; border-color: #047857; box-shadow: 0 0 0 4px rgba(52,211,153,0.22); }
+    .dash-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dash-btn { background: linear-gradient(135deg, #047857, #059669); color: #fff; border: 0; padding: 11px 24px; border-radius: 999px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(4,120,87,0.22); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .dash-btn:hover { background: linear-gradient(135deg, #065f46, #047857); transform: translateY(-1px); }
+    .dash-btn:active { transform: scale(0.97); }
+    .dash-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .dash-table th, .dash-table td { padding: 12px 10px; border-bottom: 1px solid rgba(4,120,87,0.08); text-align: left; }
+    .dash-table th { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .dash-table tr:hover td { background: rgba(209,250,229,0.28); }
+    .dash-badge { display: inline-block; background: #d1fae5; color: #047857; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+
+  <header id="header">
+    <div class="container header-inner">
+      <div class="logo"><h1><a href="./"><span>SocialWaves</span></a></h1></div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="./">Home</a></li>
+          <li><a href="all-campaigns">All Campaigns</a></li>
+          <li><a href="studio">Custom Studio</a></li>
+          <li class="active"><a href="dashboard">Admin Panel</a></li>
+          <li><a href="#" id="logout-btn">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <nav class="mobile-nav" aria-label="Mobile Navigation">
+    <ul>
+      <li><a href="./">Home</a></li>
+      <li><a href="all-campaigns">All Campaigns</a></li>
+      <li><a href="studio">Custom Studio</a></li>
+      <li class="active"><a href="dashboard">Admin Panel</a></li>
+      <li><a href="#" id="mobile-logout-btn">Logout</a></li>
+    </ul>
+  </nav>
+  <div class="mobile-nav-overlay"></div>
+
+  <main class="dash-wrap">
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>Create New Campaign</h3>
+        <p style="font-size:13px;color:#4b5563;margin:-8px 0 14px;">
+          Need visual drag &amp; drop image slot positioning or custom PNG frame uploads?
+          <a href="studio" style="font-weight:700;">Open Visual Studio &rarr;</a>
+        </p>
+        <form id="create-campaign-form">
+          <div class="dash-field">
+            <label for="c-title">Campaign Title</label>
+            <input id="c-title" required placeholder="e.g. Annual Tech Summit 2026">
+          </div>
+          <div class="dash-field">
+            <label for="c-subtitle">Subtitle</label>
+            <input id="c-subtitle" placeholder="e.g. Create your personalised supporter poster">
+          </div>
+          <div class="dash-row-2">
+            <div class="dash-field">
+              <label for="c-id">Short URL Code</label>
+              <input id="c-id" required placeholder="e.g. Tech26" pattern="[A-Za-z0-9_-]{3,20}">
+            </div>
+            <div class="dash-field">
+              <label for="c-color">Primary Frame Color</label>
+              <input id="c-color" type="color" value="#010483" style="height: 40px; padding: 4px;">
+            </div>
+          </div>
+          <div class="dash-row-2">
+            <div class="dash-field">
+              <label for="c-w">Crop Width (px)</label>
+              <input id="c-w" type="number" value="260" min="100" max="800" required>
+            </div>
+            <div class="dash-field">
+              <label for="c-h">Crop Height (px)</label>
+              <input id="c-h" type="number" value="300" min="100" max="800" required>
+            </div>
+          </div>
+          <div class="dash-field">
+            <label for="c-extra">Optional Second Field Label (leave blank for Name-only)</label>
+            <input id="c-extra" placeholder="e.g. Organization / Role">
+          </div>
+          <button type="submit" class="dash-btn">Publish Campaign</button>
+          <p id="create-msg" style="margin-top: 10px; font-size: 13px; color: #16a34a;"></p>
+        </form>
+      </div>
+
+      <div class="dash-card">
+        <h3>Campaign Reports &amp; Active URLs</h3>
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Campaign</th>
+              <th>Code</th>
+              <th>Crop Ratio</th>
+              <th>Posters</th>
+              <th>Open</th>
+            </tr>
+          </thead>
+          <tbody id="reports-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/campaigns-data.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      if (sessionStorage.getItem('sw_admin_logged_in') !== '1') {
+        window.location.href = 'login';
+        return;
+      }
+
+      function handleLogout(e) {
+        e.preventDefault();
+        sessionStorage.removeItem('sw_admin_logged_in');
+        window.location.href = 'login';
+      }
+      document.getElementById('logout-btn').addEventListener('click', handleLogout);
+      var mobileLogout = document.getElementById('mobile-logout-btn');
+      if (mobileLogout) mobileLogout.addEventListener('click', handleLogout);
+
+      function renderTable() {
+        const tbody = document.getElementById('reports-body');
+        const stats = window.SocialWavesData.getPosterStats();
+        const list = window.SocialWavesData.getAllCampaigns();
+        tbody.innerHTML = '';
+        list.forEach(function (c) {
+          const tr = document.createElement('tr');
+          const count = stats[c.id] || 0;
+          tr.innerHTML =
+            '<td><strong>' + c.title.replace(/</g, '&lt;') + '</strong></td>' +
+            '<td><code>' + c.id + '</code></td>' +
+            '<td>' + c.cropWidth + '&times;' + c.cropHeight + '</td>' +
+            '<td><span class="dash-badge">' + count + '</span></td>' +
+            '<td><a href="' + encodeURIComponent(c.id) + '">Launch &rarr;</a></td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('create-campaign-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const title = document.getElementById('c-title').value.trim();
+        const subtitle = document.getElementById('c-subtitle').value.trim() || 'Create Personalised poster to support the campaign';
+        const id = document.getElementById('c-id').value.trim();
+        const color = document.getElementById('c-color').value;
+        const cw = parseInt(document.getElementById('c-w').value, 10) || 260;
+        const ch = parseInt(document.getElementById('c-h').value, 10) || 300;
+        const extra = document.getElementById('c-extra').value.trim();
+
+        const ratio = cw / ch;
+        const slotW = 280;
+        const slotH = Math.round(slotW / ratio);
+
+        const fields = [{ name: 'name', label: 'Name', type: 'text', required: true }];
+        const textSlots = [
+          { field: 'name', x: 400, y: 835, font: '700 38px Montserrat, sans-serif', color: '#ffffff', align: 'center', maxWidth: 660 }
+        ];
+        if (extra) {
+          fields.push({ name: 'extra', label: extra, type: 'text', required: false });
+          textSlots.push({ field: 'extra', x: 400, y: 888, font: '600 24px Poppins, sans-serif', color: '#fef08a', align: 'center', maxWidth: 620 });
+        }
+
+        window.SocialWavesData.saveCustomCampaign({
+          id: id,
+          title: title,
+          subtitle: subtitle,
+          badge: 'Custom Campaign',
+          frameId: String(Date.now()).slice(-4),
+          cropWidth: cw,
+          cropHeight: ch,
+          aspectRatio: ratio,
+          slot: { x: (800 - slotW) / 2, y: 245, w: slotW, h: Math.min(440, slotH), radius: 28 },
+          palette: { bg1: color, bg2: '#0ea5e9', accent: '#1acc8d', dark: '#0f172a' },
+          headerTag: title.toUpperCase(),
+          footerText: 'Created with SocialWaves Standalone',
+          fields: fields,
+          textSlots: textSlots
+        });
+
+        document.getElementById('create-msg').innerHTML = 'Campaign "' + title.replace(/</g, '&lt;') + '" published at <a href="' + encodeURIComponent(id) + '">' + encodeURIComponent(id) + '</a>';
+        e.target.reset();
+        renderTable();
+      });
+
+      renderTable();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Personalised Poster - SocialWaves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="css/campaign.css" rel="stylesheet">
+</head>
+<body class="campaign-body">
+  <div class="campaign-shell">
+    <div class="campaign-topbar" id="campaign-topbar">
+      <a class="campaign-brand" href="./">SocialWaves</a>
+      <button type="button" class="campaign-nav-toggle" id="campaign-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+      <div class="campaign-top-links" id="campaign-top-links">
+        <a href="./">Home</a>
+        <a href="all-campaigns">All Campaigns</a>
+        <a href="studio">Custom Studio</a>
+      </div>
+    </div>
+
+    <div class="card-signin">
+      <div class="card-body">
+        <div class="loader_screen" id="loader-screen">
+          <div class="complete-hide">
+            <img id="loader-banner-img" class="campaign-banner-img" style="max-height:220px;margin-bottom:14px;" alt="Campaign Frame">
+            <p style="font-weight:600;color:#047857;">Please wait, Generating Poster...</p>
+            <div class="progress">
+              <div class="progress-bar" id="progress-bar" style="width: 15%">15%</div>
+            </div>
+            <img id="rep_image_ret" style="max-width: 140px; margin: 0 auto; display: block; border-radius: 10px;" alt="Cropped Avatar Preview">
+          </div>
+
+          <div id="result-split-wrap" class="result-split-grid" style="display:none;">
+            <div>
+              <img id="final-poster-img" class="final-poster-preview" style="display: none;" alt="Generated Campaign Poster">
+            </div>
+            <div>
+              <span class="eyebrow-pill">Ready to Share</span>
+              <h3 class="result-title" id="fnl_out" style="display: none;"></h3>
+              <p style="margin:0 0 18px;font-size:14px;color:#64748b;">Your personalised campaign poster is ready. Download the high-resolution PNG or share it directly.</p>
+              <div id="success-actions" class="action-stack" style="display: none;">
+                <a id="dw_btn" download="Poster.png" class="action-pill pill-download">Download Poster</a>
+                <a id="fb_share" target="_blank" rel="noopener" class="action-pill pill-facebook">Share on Facebook</a>
+                <a id="wt_share" target="_blank" rel="noopener" class="action-pill pill-whatsapp">Share on WhatsApp</a>
+                <button type="button" id="new-poster-btn" class="action-pill pill-new">Create Another Poster</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ad_show_hidden" class="split-campaign-grid">
+          <div class="split-preview-pane">
+            <img id="campaign-banner-img" class="campaign-banner-img" alt="Campaign Preview">
+            <div class="preview-meta-row">
+              <span class="meta-glass-chip" id="campaign-badge-pill">Campaign</span>
+              <span class="meta-glass-chip" id="campaign-ratio-pill">Photo Slot</span>
+            </div>
+          </div>
+          <div class="split-form-pane">
+            <span class="eyebrow-pill">Personalise Poster</span>
+            <h5 class="campaign-heading">Create Personalised poster to support the campaign</h5>
+            <h5 class="campaign-title" id="campaign-title">Loading...</h5>
+            <p class="campaign-subtitle" id="campaign-subtitle">create and download poster with your own image</p>
+
+            <form id="main_form" class="form-signin">
+              <div id="dynamic-fields"></div>
+
+              <details class="text-customizer-box" id="text-customizer-box">
+                <summary class="text-customizer-summary">
+                  <span>Customize Text Position &amp; Style</span>
+                  <span class="tc-badge-hint" id="tc-status-badge">Default</span>
+                </summary>
+                <div class="tc-body">
+                  <div class="tc-row">
+                    <span class="tc-label">Position Preset</span>
+                    <div class="tc-preset-row">
+                      <button type="button" class="tc-preset-btn active" data-tc-preset="default">Default</button>
+                      <button type="button" class="tc-preset-btn" data-tc-preset="top">Top</button>
+                      <button type="button" class="tc-preset-btn" data-tc-preset="upper">Upper</button>
+                      <button type="button" class="tc-preset-btn" data-tc-preset="center">Center</button>
+                      <button type="button" class="tc-preset-btn" data-tc-preset="bottom">Bottom</button>
+                    </div>
+                  </div>
+
+                  <div class="tc-grid-2">
+                    <div class="tc-control">
+                      <div class="tc-label-line">
+                        <label for="tc-y-pct">Vertical Y</label>
+                        <span class="tc-val" id="tc-y-val">Auto</span>
+                      </div>
+                      <input type="range" id="tc-y-pct" min="4" max="94" step="1" value="84">
+                    </div>
+                    <div class="tc-control">
+                      <div class="tc-label-line">
+                        <label for="tc-x-pct">Horizontal X</label>
+                        <span class="tc-val" id="tc-x-val">50%</span>
+                      </div>
+                      <input type="range" id="tc-x-pct" min="8" max="92" step="1" value="50">
+                    </div>
+                  </div>
+
+                  <div class="tc-grid-2">
+                    <div class="tc-control">
+                      <div class="tc-label-line">
+                        <label for="tc-font-size">Font Size</label>
+                        <span class="tc-val" id="tc-size-val">Auto</span>
+                      </div>
+                      <input type="range" id="tc-font-size" min="16" max="72" step="1" value="36">
+                    </div>
+                    <div class="tc-control">
+                      <div class="tc-label-line">
+                        <label for="tc-color">Text Color</label>
+                        <label class="tc-inline-check"><input type="checkbox" id="tc-color-enable"> Custom</label>
+                      </div>
+                      <input type="color" id="tc-color" value="#ffffff" class="tc-color-input">
+                    </div>
+                  </div>
+
+                  <div class="tc-grid-2">
+                    <div class="tc-control">
+                      <label for="tc-align" class="tc-label">Align</label>
+                      <select id="tc-align" class="tc-select">
+                        <option value="">Default</option>
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
+                    <div class="tc-control">
+                      <label for="tc-case" class="tc-label">Text Case</label>
+                      <select id="tc-case" class="tc-select">
+                        <option value="">Default</option>
+                        <option value="uppercase">UPPERCASE</option>
+                        <option value="capitalize">Title Case</option>
+                        <option value="lowercase">lowercase</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="tc-footer-row">
+                    <label class="tc-pill-toggle">
+                      <input type="checkbox" id="tc-pill-enable">
+                      <span>Pill Badge</span>
+                      <input type="color" id="tc-pill-color" value="#047857" aria-label="Badge background color">
+                    </label>
+                    <button type="button" class="tc-reset-btn" id="tc-reset-btn">Reset</button>
+                  </div>
+                </div>
+              </details>
+
+              <input type="hidden" value="5203" name="frame_id" id="frame_id_input">
+              <button class="btn-create" type="submit">Create</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a class="back-home-link" href="./">&copy; socialwaves.in &bull; Back to Home</a>
+    </div>
+  </div>
+
+  <!-- Image Select & Crop Modal -->
+  <div class="modal-backdrop-custom" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog-custom" role="document">
+      <div class="modal-header-custom">
+        <h5 id="modalLabel">Select and Crop the image</h5>
+        <button type="button" class="modal-close-btn" data-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body-custom">
+        <label class="file-drop-label" for="file-input">
+          <span id="file-label-text">Select file...</span>
+          <span class="file-drop-badge">Browse</span>
+        </label>
+        <input type="file" id="file-input" accept="image/x-png,image/gif,image/jpeg,image/webp" style="display: none;">
+
+        <div class="cropper-stage-wrap" id="cropper-stage-wrap">
+          <canvas id="cropper-canvas" class="cropper-canvas" width="440" height="320"></canvas>
+          <div class="cropper-controls-panel">
+            <div class="cropper-zoom-row">
+              <span>Zoom</span>
+              <input type="range" id="cropper-zoom" min="0.5" max="4" step="0.05" value="1">
+              <span id="cropper-zoom-val" class="ctrl-val">1.00x</span>
+            </div>
+            <div class="cropper-zoom-row">
+              <span>Tilt</span>
+              <input type="range" id="cropper-rotate" min="-45" max="45" step="1" value="0">
+              <span id="cropper-rotate-val" class="ctrl-val">0&deg;</span>
+            </div>
+            <div class="cropper-btn-toolbar">
+              <button type="button" class="ctrl-mini-btn" id="cropper-rot-left" title="Rotate -90&deg;">-90&deg;</button>
+              <button type="button" class="ctrl-mini-btn" id="cropper-rot-right" title="Rotate +90&deg;">+90&deg;</button>
+              <button type="button" class="ctrl-mini-btn" id="cropper-flip-x" title="Flip Horizontally">Flip H</button>
+              <button type="button" class="ctrl-mini-btn" data-nudge="-8,0" title="Move Left">&larr;</button>
+              <button type="button" class="ctrl-mini-btn" data-nudge="0,-8" title="Move Up">&uarr;</button>
+              <button type="button" class="ctrl-mini-btn" data-nudge="0,8" title="Move Down">&darr;</button>
+              <button type="button" class="ctrl-mini-btn" data-nudge="8,0" title="Move Right">&rarr;</button>
+              <button type="button" class="ctrl-mini-btn" id="cropper-reset" title="Reset Position">Reset</button>
+            </div>
+          </div>
+          <p style="margin: 8px 0 0; font-size: 12px; color: #6b7280;">Drag photo or use controls to position inside the frame window</p>
+        </div>
+      </div>
+      <div class="modal-footer-custom">
+        <button type="button" class="btn-secondary-custom" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-primary-custom crop-button" style="display: none;">Crop</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/campaigns-data.js"></script>
+  <script src="js/cropper-widget.js"></script>
+  <script src="js/campaign-app.js"></script>
+</body>
+</html>

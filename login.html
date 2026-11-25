@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>SocialWaves | Admin - Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="css/campaign.css" rel="stylesheet">
+</head>
+<body class="campaign-body">
+  <div class="login-shell">
+    <div class="login-card">
+      <div class="login-art">
+        <svg viewBox="0 0 220 220" width="200" height="200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Security Lock Illustration">
+          <circle cx="110" cy="110" r="88" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="6 4"/>
+          <circle cx="110" cy="110" r="66" fill="none" stroke="rgba(209,250,229,0.45)" stroke-width="2"/>
+          <rect x="74" y="98" width="72" height="58" rx="12" fill="#34d399"/>
+          <path d="M88 98V78a22 22 0 0 1 44 0v20" fill="none" stroke="#d1fae5" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="110" cy="124" r="7" fill="#064e3b"/>
+          <rect x="107" y="128" width="6" height="14" rx="2" fill="#064e3b"/>
+        </svg>
+      </div>
+      <div class="login-form-pane">
+        <h1>Welcome Back!</h1>
+        <p id="login-error" style="text-align: center; color: #dc2626; font-size: 13px; min-height: 20px; margin: 0 0 12px;"></p>
+        <form id="login-form">
+          <input type="text" name="username" id="username" required class="login-input" placeholder="username" autocomplete="username">
+          <input type="password" name="password" id="password" required class="login-input" placeholder="password" autocomplete="current-password">
+          <button type="submit" class="login-btn">Login</button>
+        </form>
+        <hr style="margin: 22px 0; border: 0; border-top: 1px solid rgba(4,120,87,0.12);">
+        <p style="text-align: center; font-size: 12px; color: #64748b; margin: 0 0 10px;">
+          Standalone demo credentials: <strong>admin</strong> / <strong>admin123</strong>
+        </p>
+        <p style="text-align: center; margin: 0;">
+          <a href="./" style="color: #047857; font-size: 13px; font-weight: 600;">&larr; Back to SocialWaves Home</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const form = document.getElementById('login-form');
+      const err = document.getElementById('login-error');
+      if (sessionStorage.getItem('sw_admin_logged_in') === '1') {
+        window.location.href = 'dashboard';
+        return;
+      }
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const u = document.getElementById('username').value.trim();
+        const p = document.getElementById('password').value;
+        if (u === 'admin' && p === 'admin123') {
+          sessionStorage.setItem('sw_admin_logged_in', '1');
+          window.location.href = 'dashboard';
+        } else {
+          err.textContent = 'Invalid username or password (use admin / admin123).';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

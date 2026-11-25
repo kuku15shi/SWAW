@@ -1,0 +1,30 @@
+Options -MultiViews
+RewriteEngine On
+
+# Redirect direct /index.html requests to folder root
+RewriteCond %{THE_REQUEST} \s/+([^\s?]*?)/index\.html(?:[\s?]|$) [NC]
+RewriteRule ^ /%1/ [R=302,NE,L]
+
+# Redirect direct /campaign.html?id=CODE requests to /CODE
+RewriteCond %{THE_REQUEST} \s/+([^\s?]*?)/campaign\.html\?id=([A-Za-z0-9_-]+)(?:[\s&]|$) [NC]
+RewriteRule ^ /%1/%2? [R=302,NE,L]
+
+# Redirect any other direct *.html requests to extensionless URLs
+RewriteCond %{THE_REQUEST} \s/+([^\s?]*?)\.html(?:[\s?]|$) [NC]
+RewriteRule ^ /%1 [R=302,NE,L]
+
+# Remove trailing slash on non-directory URLs so relative assets resolve cleanly
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)/+(?:[\s?]|$)
+RewriteRule ^ /%1 [R=302,NE,L]
+
+# Serve existing files and directories directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Clean extensionless page routes
+RewriteRule ^(all-campaigns|studio|login|dashboard|terms|policy)$ $1.html [L,QSA]
+
+# Clean campaign shortcode route (e.g. /4SzGA -> campaign.html?id=4SzGA)
+RewriteRule ^([A-Za-z0-9_-]+)$ campaign.html?id=$1 [L,QSA]

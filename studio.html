@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Campaign Studio &amp; Image Position Control Panel - SocialWaves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <style>
+    .studio-wrap { max-width: 1240px; margin: 92px auto 48px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    .studio-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding: 16px 22px; background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; box-shadow: 0 12px 32px rgba(4,120,87,0.07); }
+    .studio-header h2 { margin: 0; color: #17211f; font-size: 23px; font-weight: 800; }
+    .studio-header p { margin: 3px 0 0; color: #64748b; font-size: 13px; }
+    .studio-layout { display: grid; grid-template-columns: 420px 1fr; gap: 22px; align-items: start; }
+    @media (max-width: 980px) { .studio-layout { grid-template-columns: 1fr; } }
+
+    .studio-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.82); border-radius: 20px; padding: 22px; box-shadow: 0 12px 32px rgba(4, 120, 87, 0.07), 0 2px 8px rgba(23, 33, 31, 0.04); }
+    .preview-sticky { position: sticky; top: 86px; }
+    .studio-canvas { width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(4, 120, 87, 0.16); cursor: move; touch-action: none; display: block; }
+    .hud-bar { margin-top: 12px; padding: 9px 12px; background: #17211f; color: #d1fae5; border-radius: 10px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace; text-align: center; }
+    .preview-toggles { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; color: #17211f; flex-wrap: wrap; align-items: center; }
+    .preview-toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+    .preview-toggles input, input[type="checkbox"], input[type="radio"] { accent-color: #047857; }
+
+    .panel-section { border-bottom: 1px solid rgba(4, 120, 87, 0.1); padding-bottom: 18px; margin-bottom: 18px; }
+    .panel-section:last-child { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+    .panel-section h3 { margin: 0 0 14px; color: #047857; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 600px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+    .st-field { margin-bottom: 10px; }
+    .st-field label { display: block; font-size: 12px; font-weight: 600; color: #17211f; margin-bottom: 4px; }
+    .st-field input[type="text"],
+    .st-field input[type="number"],
+    .st-field select { width: 100%; padding: 9px 11px; border: 1px solid rgba(4, 120, 87, 0.16); background: rgba(255, 255, 255, 0.78); color: #17211f; border-radius: 10px; font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
+    .st-field input[type="text"]:focus,
+    .st-field input[type="number"]:focus,
+    .st-field select:focus { background: #ffffff; border-color: #047857; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.22); }
+    .st-field input[type="color"] { width: 100%; height: 38px; border: 1px solid rgba(4, 120, 87, 0.18); border-radius: 10px; padding: 3px; background: rgba(255,255,255,0.85); cursor: pointer; }
+
+    .pos-control-row { display: grid; grid-template-columns: 98px 1fr 74px; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .pos-control-row label { font-size: 12px; font-weight: 600; color: #17211f; }
+    .pos-control-row input[type="range"] { width: 100%; accent-color: #047857; }
+    .pos-control-row input[type="number"] { width: 100%; padding: 6px 8px; border: 1px solid rgba(4, 120, 87, 0.16); background: rgba(255, 255, 255, 0.8); color: #17211f; border-radius: 8px; font-size: 12px; outline: none; }
+    .pos-control-row input[type="number"]:focus { border-color: #047857; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2); }
+
+    .quick-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ctrl-mini-btn { border: 1px solid rgba(4, 120, 87, 0.16); background: rgba(255, 255, 255, 0.8); color: #17211f; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s ease; }
+    .ctrl-mini-btn:hover { background: #d1fae5; border-color: #34d399; color: #065f46; }
+    .ctrl-mini-btn:active { transform: scale(0.96); }
+
+    .publish-btn { width: 100%; background: linear-gradient(135deg, #047857 0%, #059669 100%); color: #ffffff; border: 0; padding: 14px 20px; border-radius: 999px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 24px rgba(4, 120, 87, 0.24); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .publish-btn:hover { background: linear-gradient(135deg, #065f46 0%, #047857 100%); transform: translateY(-1px); box-shadow: 0 14px 28px rgba(4, 120, 87, 0.3); }
+    .publish-btn:active { transform: scale(0.98); }
+
+    .saved-item-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(4, 120, 87, 0.08); flex-wrap: wrap; }
+    .saved-item-actions { display: flex; gap: 6px; }
+
+    .text-field-card { background: rgba(248, 250, 252, 0.78); border: 1px solid rgba(4, 120, 87, 0.14); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .text-field-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(4, 120, 87, 0.08); }
+    .text-field-title { font-weight: 700; font-size: 13px; color: #047857; }
+    .text-field-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+  </style>
+</head>
+<body>
+  <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+
+  <header id="header">
+    <div class="container header-inner">
+      <div class="logo"><h1><a href="./"><span>SocialWaves</span></a></h1></div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="./">Home</a></li>
+          <li><a href="all-campaigns">All Campaigns</a></li>
+          <li class="active"><a href="studio">Custom Studio</a></li>
+          <li><a href="login">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <nav class="mobile-nav" aria-label="Mobile Navigation">
+    <ul>
+      <li><a href="./">Home</a></li>
+      <li><a href="all-campaigns">All Campaigns</a></li>
+      <li class="active"><a href="studio">Custom Studio</a></li>
+      <li><a href="login">Login</a></li>
+    </ul>
+  </nav>
+  <div class="mobile-nav-overlay"></div>
+
+  <main class="studio-wrap">
+    <div class="studio-header">
+      <div>
+        <h2>Custom Campaign &amp; Image Position Control Panel</h2>
+        <p>Design a campaign frame or upload your own PNG, drag or dial exact photo slot coordinates, and publish directly.</p>
+      </div>
+      <a href="all-campaigns" class="ctrl-mini-btn">View All Campaigns &rarr;</a>
+    </div>
+
+    <div class="studio-layout">
+      <!-- Left: Live Interactive Position Canvas -->
+      <div class="studio-card preview-sticky">
+        <canvas id="studio-canvas" class="studio-canvas" width="800" height="1000"></canvas>
+        <div class="hud-bar" id="hud-readout">Slot: X=260 Y=245 &bull; W=280 H=336</div>
+        <div class="preview-toggles">
+          <label><input type="checkbox" id="st-show-sample" checked> Preview Sample Photo</label>
+          <label><input type="checkbox" id="st-show-guides" checked> Show Drag &amp; Text Guides</label>
+          <span id="st-frame-dims" style="margin-left:auto;font-weight:700;color:#010483;">800 &times; 1000 px</span>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin: 8px 0 0;">
+          Tip: Drag the dashed cyan photo box to reposition, drag its bottom-right square to resize, or drag orange text anchors.
+        </p>
+      </div>
+
+      <!-- Right: Campaign + Image Position + Text Controls -->
+      <div class="studio-card">
+        <div class="panel-section">
+          <h3>1. Campaign Details &amp; Frame Source</h3>
+          <div class="grid-2">
+            <div class="st-field">
+              <label for="st-title">Campaign Title</label>
+              <input type="text" id="st-title" required>
+            </div>
+            <div class="st-field">
+              <label for="st-id">Short Code / URL ID</label>
+              <input type="text" id="st-id" placeholder="auto-generated if blank">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="st-field">
+              <label for="st-subtitle">Subtitle</label>
+              <input type="text" id="st-subtitle">
+            </div>
+            <div class="st-field">
+              <label for="st-badge">Category Badge</label>
+              <input type="text" id="st-badge">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:18px;margin:8px 0 12px;font-size:13px;font-weight:600;">
+            <label><input type="radio" name="frame-mode" value="generated" checked> Built-in Theme Frame</label>
+            <label><input type="radio" name="frame-mode" value="uploaded"> Upload Custom Frame PNG</label>
+          </div>
+
+          <div id="generated-frame-controls">
+            <div class="grid-2">
+              <div class="st-field">
+                <label for="st-header-tag">Top Badge Text</label>
+                <input type="text" id="st-header-tag">
+              </div>
+              <div class="st-field">
+                <label for="st-footer-text">Bottom Footer Text</label>
+                <input type="text" id="st-footer-text">
+              </div>
+            </div>
+            <div class="grid-4">
+              <div class="st-field"><label for="st-bg1">Gradient 1</label><input type="color" id="st-bg1"></div>
+              <div class="st-field"><label for="st-bg2">Gradient 2</label><input type="color" id="st-bg2"></div>
+              <div class="st-field"><label for="st-accent">Accent</label><input type="color" id="st-accent"></div>
+              <div class="st-field"><label for="st-dark">Footer Bg</label><input type="color" id="st-dark"></div>
+            </div>
+          </div>
+
+          <div id="uploaded-frame-controls" style="display:none;">
+            <div class="st-field">
+              <label for="st-frame-file">Upload Frame Image (PNG with transparent window recommended)</label>
+              <input type="file" id="st-frame-file" accept="image/png,image/webp,image/jpeg">
+            </div>
+            <button type="button" class="ctrl-mini-btn" id="st-auto-detect">Auto-Detect Transparent Cutout</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>2. Image Position Control Panel</h3>
+          <div class="pos-control-row">
+            <label for="slot-x">X Position</label>
+            <input type="range" id="slot-x" min="0" max="800" value="260">
+            <input type="number" id="slot-x-num" min="0" max="800" value="260">
+          </div>
+          <div class="pos-control-row">
+            <label for="slot-y">Y Position</label>
+            <input type="range" id="slot-y" min="0" max="1000" value="245">
+            <input type="number" id="slot-y-num" min="0" max="1000" value="245">
+          </div>
+          <div class="pos-control-row">
+            <label for="slot-w">Width (px)</label>
+            <input type="range" id="slot-w" min="40" max="800" value="280">
+            <input type="number" id="slot-w-num" min="40" max="800" value="280">
+          </div>
+          <div class="pos-control-row">
+            <label for="slot-h">Height (px)</label>
+            <input type="range" id="slot-h" min="40" max="1000" value="336">
+            <input type="number" id="slot-h-num" min="40" max="1000" value="336">
+          </div>
+          <div class="pos-control-row">
+            <label for="slot-radius">Corner Radius</label>
+            <input type="range" id="slot-radius" min="0" max="400" value="28">
+            <input type="number" id="slot-radius-num" min="0" max="400" value="28">
+          </div>
+          <div class="pos-control-row">
+            <label for="slot-rot">Rotation (&deg;)</label>
+            <input type="range" id="slot-rot" min="-45" max="45" value="0">
+            <input type="number" id="slot-rot-num" min="-45" max="45" value="0">
+          </div>
+
+          <div class="grid-2" style="margin-top:10px;align-items:center;">
+            <div class="st-field" style="margin:0;">
+              <label for="slot-layer">Image Layer Order</label>
+              <select id="slot-layer">
+                <option value="behind">Behind Frame PNG (Cutout)</option>
+                <option value="above">Above Frame (Overlay)</option>
+              </select>
+            </div>
+            <label style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;margin-top:16px;cursor:pointer;">
+              <input type="checkbox" id="slot-lock-aspect"> Lock W:H Aspect Ratio
+            </label>
+          </div>
+
+          <div class="quick-toolbar">
+            <button type="button" class="ctrl-mini-btn" data-slot-action="center-x">Center X</button>
+            <button type="button" class="ctrl-mini-btn" data-slot-action="center-y">Center Y</button>
+            <button type="button" class="ctrl-mini-btn" data-slot-action="square">1:1 Square</button>
+            <button type="button" class="ctrl-mini-btn" data-slot-action="circle">Circle Frame</button>
+            <button type="button" class="ctrl-mini-btn" data-slot-action="portrait">4:5 Portrait</button>
+            <button type="button" class="ctrl-mini-btn" data-slot-action="reset">Reset Slot</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>
+            <span>3. Text Fields &amp; Position Customization</span>
+            <span style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="ctrl-mini-btn" id="st-add-top-text">+ Add Top Text</button>
+              <button type="button" class="ctrl-mini-btn" id="st-add-text">+ Add Field</button>
+            </span>
+          </h3>
+          <div id="text-fields-list"></div>
+        </div>
+
+        <div class="panel-section">
+          <button type="button" class="publish-btn" id="st-publish-btn">Publish Custom Campaign</button>
+          <p id="st-publish-status" style="margin: 10px 0 0; font-size: 14px; color: #16a34a; text-align: center;"></p>
+        </div>
+
+        <div class="panel-section">
+          <h3>Saved Custom Campaigns</h3>
+          <div id="st-saved-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/campaigns-data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>
