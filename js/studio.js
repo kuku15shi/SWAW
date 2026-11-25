@@ -13,6 +13,40 @@
     });
   }
 
+  function buildShareFrameDataUrl(img, currentDataUrl) {
+    if (currentDataUrl && currentDataUrl.length <= 44000) {
+      return currentDataUrl;
+    }
+    try {
+      const srcW = img.naturalWidth || 800;
+      const srcH = img.naturalHeight || 1000;
+      const maxSides = [640, 520, 420, 340];
+      const qualities = [0.76, 0.58, 0.42];
+      let smallest = currentDataUrl || '';
+
+      for (let i = 0; i < maxSides.length; i++) {
+        const scale = Math.min(1, maxSides[i] / Math.max(srcW, srcH));
+        const w = Math.max(80, Math.round(srcW * scale));
+        const h = Math.max(80, Math.round(srcH * scale));
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, w, h);
+        for (let q = 0; q < qualities.length; q++) {
+          const url = c.toDataURL('image/webp', qualities[q]);
+          if (url && url.indexOf('data:image/webp') === 0) {
+            if (!smallest || url.length < smallest.length) smallest = url;
+            if (url.length <= 44000) return url;
+          }
+        }
+      }
+      return smallest;
+    } catch (e) {
+      return currentDataUrl || '';
+    }
+  }
+
   function optimizeUploadedFrame(img, origDataUrl) {
     try {
       const srcW = img.naturalWidth || 800;
@@ -22,7 +56,12 @@
       const targetW = Math.max(100, Math.round(srcW * scale));
       const targetH = Math.max(100, Math.round(srcH * scale));
       if (scale === 1 && origDataUrl && origDataUrl.length <= 180000) {
-        return { dataUrl: origDataUrl, width: srcW, height: srcH };
+        return {
+          dataUrl: origDataUrl,
+          shareDataUrl: buildShareFrameDataUrl(img, origDataUrl),
+          width: srcW,
+          height: srcH
+        };
       }
       const c = document.createElement('canvas');
       c.width = targetW;
@@ -31,17 +70,28 @@
       cx.drawImage(img, 0, 0, targetW, targetH);
       const webpUrl = c.toDataURL('image/webp', 0.85);
       if (webpUrl && webpUrl.indexOf('data:image/webp') === 0 && (!origDataUrl || webpUrl.length < origDataUrl.length)) {
-        return { dataUrl: webpUrl, width: targetW, height: targetH };
+        return {
+          dataUrl: webpUrl,
+          shareDataUrl: buildShareFrameDataUrl(img, webpUrl),
+          width: targetW,
+          height: targetH
+        };
       }
       const pngUrl = c.toDataURL('image/png');
       if (pngUrl && (!origDataUrl || pngUrl.length < origDataUrl.length)) {
-        return { dataUrl: pngUrl, width: targetW, height: targetH };
+        return {
+          dataUrl: pngUrl,
+          shareDataUrl: buildShareFrameDataUrl(img, pngUrl),
+          width: targetW,
+          height: targetH
+        };
       }
     } catch (e) {
       // fall back to original if canvas optimization fails
     }
     return {
       dataUrl: origDataUrl,
+      shareDataUrl: buildShareFrameDataUrl(img, origDataUrl),
       width: img.naturalWidth || 800,
       height: img.naturalHeight || 1000
     };
@@ -119,6 +169,7 @@
       footerText: 'Create your personalised poster',
       frameMode: 'generated',
       customFrameDataUrl: null,
+      shareFrameDataUrl: null,
       customFrameUrl: '',
       uploadedFrameImg: null,
       generatedOverlayImg: null,
@@ -278,6 +329,7 @@
         frameWidth: state.frameWidth,
         frameHeight: state.frameHeight,
         customFrameDataUrl: state.frameMode === 'uploaded' ? state.customFrameDataUrl : null,
+        shareFrameDataUrl: state.frameMode === 'uploaded' ? state.shareFrameDataUrl : null,
         customFrameUrl: state.frameMode === 'uploaded' ? (state.customFrameUrl || '') : '',
         cropWidth: w,
         cropHeight: h,
@@ -743,6 +795,7 @@
             els.generatedBox.style.display = 'none';
             els.uploadedBox.style.display = 'block';
             state.customFrameDataUrl = optimized.dataUrl;
+            state.shareFrameDataUrl = optimized.shareDataUrl || null;
             state.customFrameUrl = '';
             if (els.frameUrl) els.frameUrl.value = '';
             state.uploadedFrameImg = img;
@@ -1012,9 +1065,9 @@
       if (els.ghToken) els.ghToken.value = cfg.token || '';
       const connected = window.SocialWavesGitHub.isConfigured();
       if (els.ghStatusPill) {
-        els.ghStatusPill.textContent = connected ? ('Auto-Upload: ' + cfg.owner + '/' + cfg.repo) : 'Not Connected';
-        els.ghStatusPill.style.background = connected ? '#d1fae5' : '#fef3c7';
-        els.ghStatusPill.style.color = connected ? '#047857' : '#92400e';
+        els.ghStatusPill.textContent = connected ? ('GitHub Sync: ' + cfg.owner + '/' + cfg.repo) : 'Standalone Mode';
+        els.ghStatusPill.style.background = connected ? '#d1fae5' : '#e2e8f0';
+        els.ghStatusPill.style.color = connected ? '#047857' : '#475569';
       }
       if (els.publishBtn) {
         els.publishBtn.textContent = connected ? 'Publish & Upload to GitHub' : 'Publish Custom Campaign';
@@ -1153,18 +1206,21 @@
 
       const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
       const fullShareUrl = new URL(launchUrl, window.location.href).href;
-      const hasOversizedLocalPng = Boolean(payload.customFrameDataUrl && payload.customFrameDataUrl.length > 14000 && !payload.customFrameUrl);
+      const embeddedFrame = payload.shareFrameDataUrl || payload.customFrameDataUrl || '';
+      const hasOversizedLocalPng = Boolean(embeddedFrame && embeddedFrame.length > 48000 && !payload.customFrameUrl);
 
       let html =
-        '<div>Saved to this browser! <a href="' + launchUrl +
+        '<div>Published! <a href="' + launchUrl +
         '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
-        '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Share Link</button>' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON</button>' +
         '</div>';
 
       if (hasOversizedLocalPng) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Connect your GitHub Token above for automatic PNG frame upload to <code>frames/</code>, otherwise uploaded PNGs stay in this browser only.</div>';
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Frame image is too detailed to fit inside a URL link; this browser keeps full resolution, or use GitHub Auto-Upload / Frame URL for cross-device sharing.</div>';
+      } else if (payload.frameMode === 'uploaded' || embeddedFrame) {
+        html += '<div style="margin-top:6px;font-size:12px;color:#047857;">Frame image is embedded inside the Share Link automatically — works without GitHub or external image hosts.</div>';
       }
       els.publishStatus.innerHTML = html;
       wirePublishActionButtons(fullShareUrl, payload);
@@ -1220,6 +1276,7 @@
       if (existingFrameSrc) {
         state.frameMode = 'uploaded';
         state.customFrameDataUrl = existing.customFrameDataUrl || null;
+        state.shareFrameDataUrl = existing.shareFrameDataUrl || null;
         state.customFrameUrl = existing.customFrameUrl || '';
         if (els.frameUrl) els.frameUrl.value = state.customFrameUrl;
         document.querySelector('input[name="frame-mode"][value="uploaded"]').checked = true;

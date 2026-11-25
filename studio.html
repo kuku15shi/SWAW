@@ -247,13 +247,16 @@
 
         <div class="panel-section">
           <h3>
-            <span>4. Self GitHub Auto-Upload</span>
-            <span id="gh-status-pill" style="font-size:11px;padding:3px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:700;">Not Connected</span>
+            <span>4. Publish &amp; Share Campaign</span>
+            <span id="gh-status-pill" style="font-size:11px;padding:3px 10px;border-radius:999px;background:#e2e8f0;color:#475569;font-weight:700;">Standalone Mode</span>
           </h3>
-          <details id="gh-sync-box" style="background:rgba(248,250,252,0.82);border:1px solid rgba(4,120,87,0.14);border-radius:14px;padding:12px 14px;margin-bottom:14px;">
-            <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#047857;user-select:none;">Connect GitHub Token for 1-Click Auto-Upload (Images &amp; Campaigns)</summary>
+          <button type="button" class="publish-btn" id="st-publish-btn">Publish Custom Campaign</button>
+          <p id="st-publish-status" style="margin: 10px 0 12px; font-size: 14px; color: #16a34a; text-align: center;"></p>
+
+          <details id="gh-sync-box" style="background:rgba(248,250,252,0.82);border:1px solid rgba(4,120,87,0.14);border-radius:14px;padding:12px 14px;">
+            <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#475569;user-select:none;">Optional: Connect GitHub Auto-Upload (for short URLs without #hash)</summary>
             <p style="font-size:12px;color:#64748b;margin:8px 0 10px;line-height:1.45;">
-              Connect once so Studio automatically uploads your frame PNGs into <code>frames/</code> and updates <code>campaigns.json</code> in your GitHub repo. Your token stays only in this browser.
+              Share links already include your compressed frame image automatically without any login or host. Only connect a token here if you want images pushed to <code>frames/</code> on GitHub.
             </p>
             <div class="grid-3">
               <div class="st-field">
@@ -279,9 +282,6 @@
               <span id="gh-test-msg" style="font-size:12px;color:#047857;"></span>
             </div>
           </details>
-
-          <button type="button" class="publish-btn" id="st-publish-btn">Publish Custom Campaign</button>
-          <p id="st-publish-status" style="margin: 10px 0 0; font-size: 14px; color: #16a34a; text-align: center;"></p>
         </div>
 
         <div class="panel-section">

@@ -281,8 +281,8 @@
       }
 
       loadFirstValidImage(candidates).then(function (overlayImg) {
-        const W = overlayImg.naturalWidth || campaign.frameWidth || 800;
-        const H = overlayImg.naturalHeight || campaign.frameHeight || 1000;
+        const W = campaign.frameWidth || overlayImg.naturalWidth || 800;
+        const H = campaign.frameHeight || overlayImg.naturalHeight || 1000;
         const out = document.createElement('canvas');
         out.width = W;
         out.height = H;
@@ -632,8 +632,8 @@
         fallbackGenUrl
       ]);
 
-      const W = overlayImg.naturalWidth || campaign.frameWidth || 800;
-      const H = overlayImg.naturalHeight || campaign.frameHeight || 1000;
+      const W = campaign.frameWidth || overlayImg.naturalWidth || 800;
+      const H = campaign.frameHeight || overlayImg.naturalHeight || 1000;
       const out = document.createElement('canvas');
       out.width = W;
       out.height = H;

@@ -162,6 +162,7 @@
           'https://raw.githubusercontent.com/' + encodeURIComponent(cfg.owner) + '/' +
           encodeURIComponent(cfg.repo) + '/' + encodeURIComponent(cfg.branch) + '/' + framePath;
         delete clean.customFrameDataUrl;
+        delete clean.shareFrameDataUrl;
       }
     }
 

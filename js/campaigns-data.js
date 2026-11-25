@@ -388,7 +388,7 @@
   function encodeCampaignToken(campaign, options) {
     if (!campaign || !campaign.id) return '';
     const opts = options || {};
-    const maxDataUrlLen = opts.maxDataUrlLen || 14000;
+    const maxDataUrlLen = opts.maxDataUrlLen || 48000;
     const compact = {
       id: campaign.id,
       title: campaign.title,
@@ -415,6 +415,8 @@
     }
     if (campaign.customFrameDataUrl && campaign.customFrameDataUrl.length <= maxDataUrlLen) {
       compact.customFrameDataUrl = campaign.customFrameDataUrl;
+    } else if (campaign.shareFrameDataUrl && campaign.shareFrameDataUrl.length <= maxDataUrlLen) {
+      compact.customFrameDataUrl = campaign.shareFrameDataUrl;
     }
     return encodeBase64Url(JSON.stringify(compact));
   }
@@ -454,7 +456,7 @@
       return base;
     }
     const token = encodeCampaignToken(campaign);
-    if (!token || token.length > 24000) {
+    if (!token || token.length > 60000) {
       return base;
     }
     return base + '#c=' + token;
