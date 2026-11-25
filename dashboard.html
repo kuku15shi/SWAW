@@ -321,6 +321,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button type="button" id="sec-pwd-toggle" class="dash-mini-btn" style="display:none;">Change Password</button>
+        <a href="setup" id="sec-setup-link" class="dash-mini-btn" style="display:none;">DB Setup</a>
         <a href="studio" class="dash-mini-btn">+ Public Studio</a>
       </div>
     </div>
@@ -607,21 +608,15 @@
     </div>
   </main>
 
-  <script src="js/admin-auth.js"></script>
   <script src="js/campaigns-data.js"></script>
   <script src="js/main.js"></script>
   <script>
     (function () {
       function handleLogout(e) {
         e.preventDefault();
-        if (window.SocialWavesAdminAuth) {
-          window.SocialWavesAdminAuth.logout().then(function () {
-            window.location.href = 'login';
-          });
-        } else {
-          sessionStorage.removeItem('sw_admin_logged_in');
+        window.SocialWavesAdminAuth.logout().then(function () {
           window.location.href = 'login';
-        }
+        });
       }
       document.getElementById('logout-btn').addEventListener('click', handleLogout);
       var mobileLogout = document.getElementById('mobile-logout-btn');
@@ -656,23 +651,19 @@
 
         const secPill = document.getElementById('sec-mode-pill');
         const rolePill = document.getElementById('sec-role-pill');
-        const secWarn = document.getElementById('sec-warning-text');
         const pwdToggleBtn = document.getElementById('sec-pwd-toggle');
+        const setupLink = document.getElementById('sec-setup-link');
         const passCard = document.getElementById('change-pass-card');
 
         if (secPill) {
-          secPill.textContent = sessionInfo.engine === 'php-mysql'
-            ? ('PHP + MySQL (' + (sessionInfo.username || 'admin') + ')')
-            : ('Local Admin Session (' + (sessionInfo.username || 'admin') + ')');
+          secPill.textContent = 'PHP + MySQL (' + (sessionInfo.username || 'admin') + ')';
         }
         if (rolePill) {
           rolePill.textContent = activeRole.replace('_', ' ').toUpperCase();
           rolePill.className = 'role-badge role-' + activeRole;
         }
-        if (secWarn && sessionInfo.usingDefaultPassword) {
-          secWarn.textContent = sessionInfo.engine === 'php-mysql'
-            ? 'Security tip: Default password in use — click "Change Password" to secure your account.'
-            : 'Tip: Start XAMPP Apache + MySQL for multi-user roles and MySQL authentication.';
+        if (setupLink && canManageUsers) {
+          setupLink.style.display = 'inline-flex';
         }
         if (pwdToggleBtn && sessionInfo.engine === 'php-mysql') {
           pwdToggleBtn.style.display = 'inline-flex';
@@ -751,6 +742,7 @@
                   '<td data-label="Created"><span class="dash-subtext">' + esc((u.createdAt || '').slice(0, 10)) + '</span></td>' +
                   '<td data-label="Actions"><div class="dash-actions">' +
                     (isSelf ? '<span class="dash-subtext">Current Session</span>' : (
+                      '<button type="button" class="dash-mini-btn" data-reset-pass="' + u.id + '" data-uname="' + esc(u.username) + '">Reset Password</button>' +
                       '<button type="button" class="dash-mini-btn" data-toggle-user="' + u.id + '" data-next-active="' + (u.isActive ? '0' : '1') + '">' + (u.isActive ? 'Disable' : 'Enable') + '</button>' +
                       '<button type="button" class="dash-mini-btn danger" data-delete-user="' + u.id + '">Delete</button>'
                     )) +
@@ -767,6 +759,24 @@
                   }).catch(function (err) {
                     userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
                     refreshUsers();
+                  });
+                });
+              });
+
+              usersBody.querySelectorAll('[data-reset-pass]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                  const uid = Number(btn.dataset.resetPass);
+                  const uname = btn.dataset.uname || 'user';
+                  const np = window.prompt('Enter new password for ' + uname + ' (min 6 chars):');
+                  if (!np) return;
+                  if (np.length < 6) {
+                    userMsg.innerHTML = '<span style="color:#f87171;">Password must be at least 6 characters.</span>';
+                    return;
+                  }
+                  window.SocialWavesAdminAuth.resetUserPassword(uid, np).then(function (r) {
+                    userMsg.innerHTML = '<span style="color:#4ade80;">' + esc(r.message) + '</span>';
+                  }).catch(function (err) {
+                    userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
                   });
                 });
               });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>SocialWaves | Admin - Login</title>
+  <title>SocialWaves | Admin Sign In</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link href="css/campaign.css" rel="stylesheet">
 </head>
@@ -22,7 +22,11 @@
       </div>
       <div class="login-form-pane">
         <h1>Admin Sign In</h1>
-        <p style="text-align:center;font-size:12.5px;color:#64748b;margin:-6px 0 12px;">Authorized administrators only</p>
+        <p style="text-align:center;font-size:12.5px;color:#64748b;margin:-6px 0 12px;">PHP + MySQL Password Authentication</p>
+        <div id="setup-needed-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:12px;margin-bottom:14px;text-align:center;">
+          <div style="font-size:12.5px;font-weight:700;color:#92400e;margin-bottom:6px;">First-Time MySQL Setup Required</div>
+          <a href="setup" style="display:inline-block;padding:6px 14px;border-radius:999px;background:#047857;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;">Open PHP + MySQL Setup &rarr;</a>
+        </div>
         <p id="login-error" style="text-align: center; color: #dc2626; font-size: 13px; min-height: 20px; margin: 0 0 12px;"></p>
         <form id="login-form">
           <input type="text" name="username" id="username" required class="login-input" placeholder="Admin username" autocomplete="username">
@@ -34,27 +38,29 @@
         </form>
         <hr style="margin: 22px 0; border: 0; border-top: 1px solid rgba(4,120,87,0.12);">
         <p id="auth-mode-note" style="text-align: center; font-size: 11.5px; color: #64748b; margin: 0 0 10px;">
-          Verifying authentication mode...
+          Connecting to PHP + MySQL auth...
         </p>
         <p style="text-align: center; margin: 0;">
-          <a href="./" style="color: #047857; font-size: 13px; font-weight: 600;">&larr; Back to SocialWaves Home</a>
+          <a href="./" style="color: #047857; font-size: 13px; font-weight: 600;">&larr; Home</a>
+          &nbsp;&bull;&nbsp;
+          <a href="setup" style="color: #047857; font-size: 13px; font-weight: 600;">MySQL Setup</a>
         </p>
       </div>
     </div>
   </div>
 
-  <script src="js/admin-auth.js"></script>
   <script>
     (function () {
       const form = document.getElementById('login-form');
       const err = document.getElementById('login-error');
       const submitBtn = document.getElementById('login-submit-btn');
       const noteEl = document.getElementById('auth-mode-note');
+      const setupBanner = document.getElementById('setup-needed-banner');
       const passInput = document.getElementById('password');
       const togglePassBtn = document.getElementById('toggle-pass-btn');
 
       const rawNext = new URLSearchParams(window.location.search).get('next') || 'dashboard';
-      const safeNext = /^(dashboard|studio)$/i.test(rawNext.replace(/\.html$/i, ''))
+      const safeNext = /^(dashboard|studio|setup)$/i.test(rawNext.replace(/\.html$/i, ''))
         ? rawNext.replace(/\.html$/i, '').toLowerCase()
         : 'dashboard';
 
@@ -66,19 +72,27 @@
         });
       }
 
-      if (window.SocialWavesAdminAuth) {
-        window.SocialWavesAdminAuth.checkSession().then(function (st) {
-          if (st.authenticated) {
+      fetch('api/auth?t=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (st) {
+          if (st && st.authenticated) {
             window.location.replace(safeNext);
             return;
           }
+          if (st && st.needsSetup && setupBanner) {
+            setupBanner.style.display = 'block';
+          }
           if (noteEl) {
-            noteEl.textContent = st.serverBacked
-              ? 'Protected by signed HttpOnly server session.'
-              : 'Local session fallback (start XAMPP Apache & MySQL for database auth).';
+            noteEl.textContent = (st && st.needsSetup)
+              ? 'No admin account configured yet — run Setup first.'
+              : 'Protected by PHP session & MySQL password_hash.';
+          }
+        })
+        .catch(function () {
+          if (noteEl) {
+            noteEl.textContent = 'Start XAMPP Apache + MySQL to sign in.';
           }
         });
-      }
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -89,15 +103,27 @@
           submitBtn.disabled = true;
           submitBtn.textContent = 'Signing in...';
         }
-        window.SocialWavesAdminAuth.login(u, p).then(function () {
-          window.location.replace(safeNext);
-        }).catch(function (authErr) {
-          err.textContent = (authErr && authErr.message) || 'Invalid username or password.';
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Sign In';
-          }
-        });
+        fetch('api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ action: 'login', username: u, password: p })
+        })
+          .then(function (r) {
+            return r.json().then(function (data) {
+              if (!r.ok || !data || !data.authenticated) {
+                throw new Error((data && data.error) || 'Invalid username or password.');
+              }
+              window.location.replace(safeNext);
+            });
+          })
+          .catch(function (authErr) {
+            err.textContent = (authErr && authErr.message) || 'PHP/MySQL auth server unreachable.';
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Sign In';
+            }
+          });
       });
     })();
   </script>

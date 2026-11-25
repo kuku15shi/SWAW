@@ -289,46 +289,6 @@
   function loadRemoteCampaigns() {
     if (typeof fetch !== 'function') return Promise.resolve([]);
 
-    const tryStaticJson = function () {
-      const urls = ['campaigns.json?t=' + Date.now()];
-      try {
-        const loc = global.location;
-        if (loc && /\.github\.io$/i.test(loc.hostname || '')) {
-          const owner = loc.hostname.split('.')[0];
-          const segs = (loc.pathname || '').split('/').filter(Boolean);
-          const repo = segs.length ? segs[0] : '';
-          if (owner && repo) {
-            urls.unshift(
-              'https://raw.githubusercontent.com/' + encodeURIComponent(owner) + '/' +
-              encodeURIComponent(repo) + '/main/campaigns.json?t=' + Date.now()
-            );
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-
-      function tryUrl(idx) {
-        if (idx >= urls.length) return Promise.resolve([]);
-        return fetchWithTimeout(urls[idx], null, 2500)
-          .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-          })
-          .then(function (data) {
-            if (Array.isArray(data)) {
-              REMOTE_CAMPAIGNS = data;
-              return REMOTE_CAMPAIGNS;
-            }
-            return [];
-          })
-          .catch(function () {
-            return tryUrl(idx + 1);
-          });
-      }
-      return tryUrl(0);
-    };
-
     return fetchWithTimeout('api/campaigns?t=' + Date.now(), null, 3000)
       .then(function (r) {
         const ct = (r.headers && r.headers.get && r.headers.get('content-type')) || '';
@@ -352,11 +312,11 @@
             return REMOTE_CAMPAIGNS;
           }
         }
-        return tryStaticJson();
+        return [];
       })
       .catch(function () {
         SERVER_STATUS = { available: false, configured: false, mode: 'static' };
-        return tryStaticJson();
+        return [];
       });
   }
 
@@ -1078,6 +1038,84 @@
       ctx.restore();
     });
   }
+
+  function authPost(payload) {
+    return fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload || {})
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok || !data || !data.ok) {
+          throw new Error((data && data.error) || 'Authentication request failed.');
+        }
+        return data;
+      });
+    });
+  }
+
+  global.SocialWavesAdminAuth = {
+    checkSession: function () {
+      if (typeof fetch !== 'function') return Promise.resolve({ authenticated: false, serverBacked: false });
+      return fetch('api/auth?t=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          return {
+            serverBacked: true,
+            engine: (d && d.engine) || 'php-mysql',
+            authenticated: Boolean(d && d.authenticated),
+            needsSetup: Boolean(d && d.needsSetup),
+            username: (d && d.username) || null,
+            role: (d && d.role) || null
+          };
+        })
+        .catch(function () {
+          return { serverBacked: false, authenticated: false, needsSetup: true, username: null, role: null };
+        });
+    },
+    requireAdmin: function (redirectTarget) {
+      return this.checkSession().then(function (st) {
+        if (st.needsSetup) {
+          global.location.replace('setup');
+          return null;
+        }
+        if (!st.authenticated) {
+          const page = redirectTarget || (global.location.pathname.split('/').pop() || 'dashboard');
+          global.location.replace('login?next=' + encodeURIComponent(page));
+          return null;
+        }
+        return st;
+      });
+    },
+    logout: function () {
+      return fetch('api/auth', { method: 'DELETE', credentials: 'same-origin' }).catch(function () {});
+    },
+    changePassword: function (cur, nxt) {
+      return authPost({ action: 'change_password', currentPassword: String(cur || ''), newPassword: String(nxt || '') });
+    },
+    listUsers: function () {
+      return fetch('api/auth?action=users&t=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' })
+        .then(function (r) {
+          return r.json().then(function (d) {
+            if (!r.ok || !d || !d.ok) throw new Error((d && d.error) || 'Failed to load admin users.');
+            return d;
+          });
+        });
+    },
+    createUser: function (username, password, role) {
+      return authPost({ action: 'create_user', username: String(username || '').trim(), password: String(password || ''), role: String(role || 'editor') });
+    },
+    updateUser: function (userId, patch) {
+      return authPost(Object.assign({ action: 'update_user', userId: Number(userId) }, patch || {}));
+    },
+    resetUserPassword: function (userId, newPassword) {
+      return authPost({ action: 'reset_user_password', userId: Number(userId), newPassword: String(newPassword || '') });
+    },
+    deleteUser: function (userId) {
+      return authPost({ action: 'delete_user', userId: Number(userId) });
+    }
+  };
 
   global.SocialWavesData = {
     DEFAULT_CAMPAIGNS: DEFAULT_CAMPAIGNS,

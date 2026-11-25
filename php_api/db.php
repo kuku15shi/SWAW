@@ -3,11 +3,7 @@ declare(strict_types=1);
 
 function sw_config(): array
 {
-    static $cfg = null;
-    if ($cfg === null) {
-        $cfg = require __DIR__ . '/config.php';
-    }
-    return $cfg;
+    return require __DIR__ . '/config.php';
 }
 
 function sw_json($data, int $status = 200): void
@@ -222,15 +218,6 @@ function sw_db(): PDO
           KEY `idx_posters_campaign` (`campaign_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
-
-    $count = (int)$pdo->query("SELECT COUNT(*) FROM `admins`")->fetchColumn();
-    if ($count === 0) {
-        $stmt = $pdo->prepare("INSERT INTO `admins` (`username`, `password_hash`, `role`, `is_active`) VALUES (?, ?, 'super_admin', 1)");
-        $stmt->execute([
-            $cfg['default_admin_user'],
-            password_hash($cfg['default_admin_pass'], PASSWORD_DEFAULT)
-        ]);
-    }
 
     return $pdo;
 }

@@ -19,7 +19,7 @@ RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)/+(?:[\s?]|$)
 RewriteRule ^ /%1 [R=302,NE,L]
 
 # Protect database and PHP config/db internals from direct download on Apache
-RewriteRule ^(?:database|php_api/(?:config|db)\.php) - [F,L]
+RewriteRule ^(?:database|php_api/(?:config(?:\.local)?|db)\.php) - [F,L]
 
 # Serve existing files and directories directly
 RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -27,9 +27,10 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # Route clean API endpoints to PHP MySQL handlers on Apache/XAMPP
-RewriteRule ^api/(auth|campaigns|posters)$ php_api/$1.php [L,QSA]
+RewriteRule ^api/(auth|campaigns|posters|setup)$ php_api/$1.php [L,QSA]
 
 # Clean extensionless page routes
+RewriteRule ^setup$ setup.php [L,QSA]
 RewriteRule ^(all-campaigns|campaign|studio|login|dashboard|terms|policy)$ $1.html [L,QSA]
 
 # Clean campaign shortcode route (e.g. /4SzGA -> campaign.html?id=4SzGA)

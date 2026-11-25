@@ -9,21 +9,20 @@ sw_start_session();
 try {
     $pdo = sw_db();
 } catch (Throwable $e) {
+    if ($method === 'GET') {
+        sw_json([
+            'ok' => true,
+            'engine' => 'php-mysql',
+            'authenticated' => false,
+            'needsSetup' => true,
+            'dbError' => $e->getMessage(),
+        ]);
+    }
     sw_json([
         'ok' => false,
-        'error' => 'MySQL connection failed: ' . $e->getMessage()
+        'needsSetup' => true,
+        'error' => 'MySQL setup required: ' . $e->getMessage()
     ], 500);
-}
-
-function sw_is_default_password(PDO $pdo, string $username): bool
-{
-    $stmt = $pdo->prepare('SELECT `password_hash` FROM `admins` WHERE `username` = ? LIMIT 1');
-    $stmt->execute([$username]);
-    $hash = $stmt->fetchColumn();
-    if (!is_string($hash) || $hash === '') {
-        return false;
-    }
-    return password_verify('admin123', $hash);
 }
 
 if ($method === 'GET') {
@@ -49,15 +48,15 @@ if ($method === 'GET') {
         ]);
     }
 
+    $adminCount = (int)$pdo->query('SELECT COUNT(*) FROM `admins`')->fetchColumn();
     $user = $rec ? $rec['username'] : null;
-    $isDefault = $user !== null ? sw_is_default_password($pdo, $user) : false;
     sw_json([
         'ok' => true,
         'engine' => 'php-mysql',
         'authenticated' => $rec !== null,
+        'needsSetup' => $adminCount === 0,
         'username' => $user,
         'role' => $rec ? $rec['role'] : null,
-        'usingDefaultPassword' => $isDefault,
     ]);
 }
 
@@ -158,6 +157,21 @@ if ($method === 'POST') {
         sw_json(['ok' => true, 'engine' => 'php-mysql', 'message' => 'Updated user role/status.']);
     }
 
+    if ($action === 'reset_user_password') {
+        $me = sw_require_role($pdo, ['super_admin']);
+        $targetId = (int)($body['userId'] ?? 0);
+        $newPass = (string)($body['newPassword'] ?? '');
+        if ($targetId <= 0) {
+            sw_json(['ok' => false, 'error' => 'Valid userId is required.'], 400);
+        }
+        if (strlen($newPass) < 6) {
+            sw_json(['ok' => false, 'error' => 'New password must be at least 6 characters.'], 400);
+        }
+        $upd = $pdo->prepare('UPDATE `admins` SET `password_hash` = ? WHERE `id` = ?');
+        $upd->execute([password_hash($newPass, PASSWORD_DEFAULT), $targetId]);
+        sw_json(['ok' => true, 'engine' => 'php-mysql', 'message' => 'User password reset in MySQL.']);
+    }
+
     if ($action === 'delete_user') {
         $me = sw_require_role($pdo, ['super_admin']);
         $targetId = (int)($body['userId'] ?? 0);
@@ -205,7 +219,6 @@ if ($method === 'POST') {
         'authenticated' => true,
         'username' => $row['username'],
         'role' => $role,
-        'usingDefaultPassword' => password_verify('admin123', $row['password_hash']),
     ]);
 }
 
