@@ -89,7 +89,12 @@
     let json = null;
     try { json = text ? JSON.parse(text) : null; } catch (e) { json = null; }
     if (!resp.ok) {
-      const msg = (json && json.message) ? json.message : ('GitHub HTTP ' + resp.status);
+      let msg = (json && json.message) ? json.message : ('GitHub HTTP ' + resp.status);
+      if (resp.status === 403 && /personal access token/i.test(msg)) {
+        msg = 'Token lacks write permission on ' + cfg.owner + '/' + cfg.repo +
+          '. Edit your Fine-Grained PAT: select Repository "' + cfg.repo +
+          '" and set Repository permissions -> Contents = Read and write (or use a Classic Token with "public_repo" / "repo").';
+      }
       const err = new Error(msg);
       err.status = resp.status;
       throw err;
@@ -134,8 +139,11 @@
       throw new Error('Enter GitHub Owner, Repo, and Personal Access Token first.');
     }
     const repoInfo = await ghRequest('', cfg);
-    if (repoInfo && repoInfo.permissions && repoInfo.permissions.push === false) {
-      throw new Error('Token does not have write/push permission on ' + cfg.owner + '/' + cfg.repo);
+    if (!repoInfo || !repoInfo.permissions || repoInfo.permissions.push !== true) {
+      throw new Error(
+        'Token is read-only for ' + cfg.owner + '/' + cfg.repo +
+        '. Select Repository "' + cfg.repo + '" and set Contents: Read and write (or use a Classic Token with "public_repo" / "repo").'
+      );
     }
     return repoInfo;
   }
