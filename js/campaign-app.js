@@ -52,13 +52,17 @@
     const campaign = window.SocialWavesData.getActiveCampaignFromUrl(id);
     document.title = campaign.title + ', Create Personalised poster to show support';
 
-    // Hide ?id=... / campaign filename / #c=... token cleanly in the address bar
+    // Hide ?id=... / campaign filename cleanly ONLY when campaign is synced/built-in;
+    // keep #c= hash intact for unsynced local-only links so copying the URL bar still works for others.
     try {
       const targetSlug = encodeURIComponent(campaign.id);
       const curPath = window.location.pathname || '/';
       const basePath = curPath.replace(/[^/]*$/, '');
       const cleanPath = basePath + targetSlug;
-      if (window.history && window.history.replaceState &&
+      const isPublicSynced = typeof window.SocialWavesData.isSyncedRemotely === 'function'
+        ? window.SocialWavesData.isSyncedRemotely(campaign)
+        : false;
+      if (isPublicSynced && window.history && window.history.replaceState &&
           (curPath !== cleanPath || window.location.search || window.location.hash)) {
         window.history.replaceState(null, '', cleanPath);
       }

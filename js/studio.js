@@ -1310,19 +1310,25 @@
       const fullShareUrl = new URL(launchUrl, window.location.href).href;
       const embeddedFrame = payload.shareFrameDataUrl || payload.customFrameDataUrl || '';
       const hasOversizedLocalPng = Boolean(embeddedFrame && embeddedFrame.length > 48000 && !payload.customFrameUrl);
+      const srvStatus = typeof window.SocialWavesData.getServerStatus === 'function'
+        ? window.SocialWavesData.getServerStatus()
+        : { available: false, configured: false };
 
       let html =
-        '<div>Published! <a href="' + launchUrl +
-        '" style="font-weight:700;text-decoration:underline;">Launch "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
+        '<div style="color:#b45309;font-weight:700;">Saved in THIS browser only (not synced to server yet).</div>' +
+        '<div style="margin-top:6px;"><a href="' + launchUrl +
+        '" style="font-weight:700;text-decoration:underline;">Preview "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Share Link</button>' +
+        '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Share Link (with #c data)</button>' +
         '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON</button>' +
         '</div>';
 
-      if (hasOversizedLocalPng) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Frame image is too detailed to fit inside a URL link; this browser keeps full resolution, or use GitHub Auto-Upload / Frame URL for cross-device sharing.</div>';
-      } else if (payload.frameMode === 'uploaded' || embeddedFrame) {
-        html += '<div style="margin-top:6px;font-size:12px;color:#047857;">Frame image is embedded inside the Share Link automatically — works without GitHub or external image hosts.</div>';
+      if (srvStatus.available && !srvStatus.configured) {
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">So EVERY user sees <code>/' + window.escapeHtml(payload.id) + '</code>: in Vercel Dashboard click <strong>Storage &rarr; Create Blob Store</strong> and Redeploy.</div>';
+      } else if (hasOversizedLocalPng) {
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Large frame image cannot fit in URL; connect Vercel Blob or GitHub Auto-Upload so everyone sees it.</div>';
+      } else {
+        html += '<div style="margin-top:6px;font-size:12px;color:#64748b;">For public short links (<code>/' + window.escapeHtml(payload.id) + '</code>) visible to everyone on Home &amp; All Campaigns, connect Vercel Blob or GitHub Auto-Upload.</div>';
       }
       els.publishStatus.innerHTML = html;
       wirePublishActionButtons(fullShareUrl, payload);

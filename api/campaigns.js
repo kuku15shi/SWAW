@@ -64,6 +64,7 @@ async function blobWriteCampaigns(items) {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
+    cacheControlMaxAge: 0,
     contentType: 'application/json'
   });
 }
@@ -83,6 +84,7 @@ async function blobSaveCampaign(campaign) {
         access: 'public',
         addRandomSuffix: false,
         allowOverwrite: true,
+        cacheControlMaxAge: 60,
         contentType: contentType
       });
       clean.customFrameUrl = blob.url;
