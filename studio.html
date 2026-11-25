@@ -147,6 +147,28 @@
             </div>
           </div>
 
+          <div class="grid-3">
+            <div class="st-field">
+              <label for="st-start-date">Start Date</label>
+              <input type="date" id="st-start-date" style="width:100%;padding:9px 11px;border:1px solid rgba(4,120,87,0.16);background:rgba(255,255,255,0.78);color:#17211f;border-radius:10px;font-size:13px;font-family:inherit;">
+            </div>
+            <div class="st-field">
+              <label for="st-validity">Running Validity</label>
+              <select id="st-validity">
+                <option value="0">Unlimited (No Expiry)</option>
+                <option value="7">7 Days</option>
+                <option value="15">15 Days</option>
+                <option value="30">30 Days</option>
+                <option value="90">90 Days</option>
+                <option value="365">1 Year (365 Days)</option>
+              </select>
+            </div>
+            <div class="st-field">
+              <label for="st-end-date">End Date (Optional)</label>
+              <input type="date" id="st-end-date" style="width:100%;padding:9px 11px;border:1px solid rgba(4,120,87,0.16);background:rgba(255,255,255,0.78);color:#17211f;border-radius:10px;font-size:13px;font-family:inherit;">
+            </div>
+          </div>
+
           <div style="display:flex;gap:18px;margin:8px 0 12px;font-size:13px;font-weight:600;">
             <label><input type="radio" name="frame-mode" value="generated" checked> Built-in Theme Frame</label>
             <label><input type="radio" name="frame-mode" value="uploaded"> Upload Custom Frame PNG</label>
@@ -257,37 +279,7 @@
             <span id="gh-status-pill" style="font-size:11px;padding:3px 10px;border-radius:999px;background:#e2e8f0;color:#475569;font-weight:700;">Standalone Mode</span>
           </h3>
           <button type="button" class="publish-btn" id="st-publish-btn">Publish Custom Campaign</button>
-          <p id="st-publish-status" style="margin: 10px 0 12px; font-size: 14px; color: #16a34a; text-align: center;"></p>
-
-          <details id="gh-sync-box" style="background:rgba(248,250,252,0.82);border:1px solid rgba(4,120,87,0.14);border-radius:14px;padding:12px 14px;">
-            <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:#475569;user-select:none;">Optional: Connect GitHub Auto-Upload (for short URLs without #hash)</summary>
-            <p style="font-size:12px;color:#64748b;margin:8px 0 10px;line-height:1.45;">
-              Share links already include your compressed frame image automatically without any login or host. Only connect a token here if you want images pushed to <code>frames/</code> on GitHub.
-            </p>
-            <div class="grid-3">
-              <div class="st-field">
-                <label for="gh-owner">GitHub Username</label>
-                <input type="text" id="gh-owner" placeholder="kuku15shi">
-              </div>
-              <div class="st-field">
-                <label for="gh-repo">Repository</label>
-                <input type="text" id="gh-repo" placeholder="SWAW">
-              </div>
-              <div class="st-field">
-                <label for="gh-branch">Branch</label>
-                <input type="text" id="gh-branch" placeholder="main">
-              </div>
-            </div>
-            <div class="st-field">
-              <label for="gh-token">GitHub Personal Access Token (<a href="https://github.com/settings/tokens/new?scopes=public_repo&description=SocialWavesStudio" target="_blank" rel="noopener" style="color:#047857;text-decoration:underline;">Classic Token: public_repo</a> or <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener" style="color:#047857;text-decoration:underline;">Fine-Grained: Select Repo + Contents Read &amp; Write</a>)</label>
-              <input type="password" id="gh-token" placeholder="ghp_... or github_pat_..." style="width:100%;padding:9px 11px;border:1px solid rgba(4,120,87,0.16);background:rgba(255,255,255,0.78);color:#17211f;border-radius:10px;font-size:13px;font-family:inherit;">
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-              <button type="button" class="ctrl-mini-btn" id="gh-save-test-btn">Save &amp; Connect GitHub</button>
-              <button type="button" class="ctrl-mini-btn" id="gh-disconnect-btn" style="color:#dc2626;">Clear Token</button>
-              <span id="gh-test-msg" style="font-size:12px;color:#047857;"></span>
-            </div>
-          </details>
+          <p id="st-publish-status" style="margin: 10px 0 0; font-size: 14px; color: #16a34a; text-align: center;"></p>
         </div>
 
         <div class="panel-section">
@@ -300,7 +292,6 @@
 
   <script src="js/admin-auth.js"></script>
   <script src="js/campaigns-data.js"></script>
-  <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>
   <script src="js/studio.js"></script>
 </body>

@@ -192,11 +192,19 @@
     const ctx = canvas.getContext('2d');
     const samplePhoto = makeSamplePortraitCanvas();
 
+    function todayYmd() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     const state = {
       id: '',
       title: 'My Custom Campaign',
       subtitle: 'Create your personalised poster to show support',
       badge: 'Custom Campaign',
+      startDate: todayYmd(),
+      endDate: '',
+      validityDays: 0,
       headerTag: 'SOCIALWAVES CAMPAIGN',
       footerText: 'Create your personalised poster',
       frameMode: 'generated',
@@ -245,6 +253,9 @@
       subtitle: document.getElementById('st-subtitle'),
       id: document.getElementById('st-id'),
       badge: document.getElementById('st-badge'),
+      startDate: document.getElementById('st-start-date'),
+      validity: document.getElementById('st-validity'),
+      endDate: document.getElementById('st-end-date'),
       headerTag: document.getElementById('st-header-tag'),
       footerText: document.getElementById('st-footer-text'),
       modeRadios: document.querySelectorAll('input[name="frame-mode"]'),
@@ -284,16 +295,7 @@
       publishBtn: document.getElementById('st-publish-btn'),
       publishStatus: document.getElementById('st-publish-status'),
       savedList: document.getElementById('st-saved-list'),
-
-      ghSyncBox: document.getElementById('gh-sync-box'),
-      ghOwner: document.getElementById('gh-owner'),
-      ghRepo: document.getElementById('gh-repo'),
-      ghBranch: document.getElementById('gh-branch'),
-      ghToken: document.getElementById('gh-token'),
-      ghSaveTestBtn: document.getElementById('gh-save-test-btn'),
-      ghDisconnectBtn: document.getElementById('gh-disconnect-btn'),
-      ghStatusPill: document.getElementById('gh-status-pill'),
-      ghTestMsg: document.getElementById('gh-test-msg')
+      ghStatusPill: document.getElementById('gh-status-pill')
     };
 
     const RESERVED_SLUGS = new Set([
@@ -355,6 +357,9 @@
         title: state.title || 'Custom Campaign',
         subtitle: state.subtitle || '',
         badge: state.badge || 'Custom Campaign',
+        startDate: state.startDate || '',
+        endDate: state.endDate || '',
+        validityDays: Number(state.validityDays) || 0,
         headerTag: state.headerTag,
         footerText: state.footerText,
         frameId: 'custom-' + id,
@@ -402,6 +407,9 @@
       els.subtitle.value = state.subtitle;
       if (state.id) els.id.value = state.id;
       els.badge.value = state.badge;
+      if (els.startDate) els.startDate.value = state.startDate || '';
+      if (els.validity) els.validity.value = String(state.validityDays || 0);
+      if (els.endDate) els.endDate.value = state.endDate || '';
       els.headerTag.value = state.headerTag;
       els.footerText.value = state.footerText;
       els.bg1.value = state.palette.bg1;
@@ -1088,11 +1096,42 @@
             : { configured: false };
           if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
             window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
-          } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
-            window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
           }
           renderSavedCustomList();
         });
+      });
+    }
+
+    function recalcEndDateFromValidity() {
+      const days = Number(state.validityDays) || 0;
+      if (days > 0 && state.startDate) {
+        const parts = state.startDate.split('-').map(Number);
+        if (parts.length === 3) {
+          const d = new Date(parts[0], parts[1] - 1, parts[2] + (days - 1));
+          state.endDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          if (els.endDate) els.endDate.value = state.endDate;
+        }
+      } else if (days === 0) {
+        state.endDate = '';
+        if (els.endDate) els.endDate.value = '';
+      }
+    }
+
+    if (els.startDate) {
+      els.startDate.addEventListener('change', function () {
+        state.startDate = els.startDate.value;
+        recalcEndDateFromValidity();
+      });
+    }
+    if (els.validity) {
+      els.validity.addEventListener('change', function () {
+        state.validityDays = Number(els.validity.value) || 0;
+        recalcEndDateFromValidity();
+      });
+    }
+    if (els.endDate) {
+      els.endDate.addEventListener('change', function () {
+        state.endDate = els.endDate.value;
       });
     }
 
@@ -1100,14 +1139,6 @@
       const srv = typeof window.SocialWavesData.getServerStatus === 'function'
         ? window.SocialWavesData.getServerStatus()
         : { available: false, configured: false, mode: 'static' };
-      const cfg = window.SocialWavesGitHub ? window.SocialWavesGitHub.getConfig() : {};
-      if (window.SocialWavesGitHub) {
-        if (els.ghOwner) els.ghOwner.value = cfg.owner || '';
-        if (els.ghRepo) els.ghRepo.value = cfg.repo || '';
-        if (els.ghBranch) els.ghBranch.value = cfg.branch || 'main';
-        if (els.ghToken) els.ghToken.value = cfg.token || '';
-      }
-      const ghConnected = Boolean(window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured());
       if (els.ghStatusPill) {
         if (srv.configured) {
           els.ghStatusPill.textContent = srv.mode === 'php-mysql'
@@ -1121,10 +1152,6 @@
             : 'Vercel (Attach Blob Store)';
           els.ghStatusPill.style.background = '#fef3c7';
           els.ghStatusPill.style.color = '#92400e';
-        } else if (ghConnected) {
-          els.ghStatusPill.textContent = 'GitHub Sync: ' + cfg.owner + '/' + cfg.repo;
-          els.ghStatusPill.style.background = '#d1fae5';
-          els.ghStatusPill.style.color = '#047857';
         } else {
           els.ghStatusPill.textContent = 'Standalone Mode';
           els.ghStatusPill.style.background = '#e2e8f0';
@@ -1136,56 +1163,9 @@
           els.publishBtn.textContent = srv.mode === 'php-mysql'
             ? 'Publish Live to MySQL (Short URL)'
             : 'Publish Live (Short URL)';
-        } else if (ghConnected) {
-          els.publishBtn.textContent = 'Publish & Upload to GitHub';
         } else {
           els.publishBtn.textContent = 'Publish Custom Campaign';
         }
-      }
-    }
-
-    if (window.SocialWavesGitHub) {
-      updateGitHubUi();
-
-      if (els.ghSaveTestBtn) {
-        els.ghSaveTestBtn.addEventListener('click', function () {
-          const cfg = {
-            owner: els.ghOwner ? els.ghOwner.value : '',
-            repo: els.ghRepo ? els.ghRepo.value : '',
-            branch: els.ghBranch ? els.ghBranch.value : 'main',
-            token: els.ghToken ? els.ghToken.value : ''
-          };
-          if (els.ghTestMsg) {
-            els.ghTestMsg.style.color = '#64748b';
-            els.ghTestMsg.textContent = 'Checking GitHub repo...';
-          }
-          window.SocialWavesGitHub.testConnection(cfg).then(function (repoInfo) {
-            updateGitHubUi();
-            if (els.ghTestMsg) {
-              els.ghTestMsg.style.color = '#047857';
-              els.ghTestMsg.textContent = 'Connected to ' + (repoInfo.full_name || (cfg.owner + '/' + cfg.repo)) + '!';
-            }
-          }).catch(function (err) {
-            updateGitHubUi();
-            if (els.ghTestMsg) {
-              els.ghTestMsg.style.color = '#dc2626';
-              els.ghTestMsg.textContent = err.message || 'Connection failed.';
-            }
-          });
-        });
-      }
-
-      if (els.ghDisconnectBtn) {
-        els.ghDisconnectBtn.addEventListener('click', function () {
-          const cfg = window.SocialWavesGitHub.getConfig();
-          cfg.token = '';
-          window.SocialWavesGitHub.saveConfig(cfg);
-          updateGitHubUi();
-          if (els.ghTestMsg) {
-            els.ghTestMsg.style.color = '#64748b';
-            els.ghTestMsg.textContent = 'Token cleared.';
-          }
-        });
       }
     }
 
@@ -1195,11 +1175,11 @@
         copyLinkBtn.addEventListener('click', function () {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(fullShareUrl).then(function () {
-              copyLinkBtn.textContent = 'Hosted Link Copied!';
-              setTimeout(function () { copyLinkBtn.textContent = 'Copy Hosted Share Link'; }, 1800);
+              copyLinkBtn.textContent = 'Link Copied!';
+              setTimeout(function () { copyLinkBtn.textContent = 'Copy Share Link'; }, 1800);
             });
           } else {
-            window.prompt('Copy hosted campaign link:', fullShareUrl);
+            window.prompt('Copy campaign link:', fullShareUrl);
           }
         });
       }
@@ -1211,10 +1191,10 @@
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(jsonText).then(function () {
               copyJsonBtn.textContent = 'JSON Copied!';
-              setTimeout(function () { copyJsonBtn.textContent = 'Copy JSON for GitHub'; }, 1800);
+              setTimeout(function () { copyJsonBtn.textContent = 'Copy JSON'; }, 1800);
             });
           } else {
-            window.prompt('Copy campaign JSON for DEFAULT_CAMPAIGNS:', jsonText);
+            window.prompt('Copy campaign JSON:', jsonText);
           }
         });
       }
@@ -1239,7 +1219,7 @@
         : { configured: false };
       if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
         els.publishBtn.disabled = true;
-        els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">Saving campaign &amp; image to cloud (no token)...</span>';
+        els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">Saving campaign &amp; image to database...</span>';
 
         window.SocialWavesData.saveCampaignToServer(payload).then(function (res) {
           els.publishBtn.disabled = false;
@@ -1248,7 +1228,7 @@
           const shortUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
 
           els.publishStatus.innerHTML =
-            '<div style="color:#047857;font-weight:700;">Live! Short URL &amp; image saved (no token needed).</div>' +
+            '<div style="color:#047857;font-weight:700;">Live! Saved to server database with Short URL.</div>' +
             '<div style="margin-top:6px;"><a href="' + shortUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + window.escapeHtml(shortUrl) + '</a></div>' +
             '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
             '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Short Link</button>' +
@@ -1261,54 +1241,11 @@
           const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
           const fullShareUrl = new URL(launchUrl, window.location.href).href;
           els.publishStatus.innerHTML =
-            '<div style="color:#dc2626;font-weight:700;">Cloud save failed: ' + window.escapeHtml(err.message || 'Server error') + '</div>' +
+            '<div style="color:#dc2626;font-weight:700;">Server save failed: ' + window.escapeHtml(err.message || 'Server error') + '</div>' +
             '<div style="margin-top:4px;font-size:13px;">Saved locally. <a href="' + launchUrl + '" style="font-weight:700;text-decoration:underline;">Open Local Preview &rarr;</a></div>' +
             '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
             '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Share Link</button>' +
             '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON</button>' +
-            '</div>';
-          wirePublishActionButtons(fullShareUrl, payload);
-          renderSavedCustomList();
-        });
-        return;
-      }
-
-      const canAutoGitHub = Boolean(window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured());
-      if (canAutoGitHub) {
-        els.publishBtn.disabled = true;
-        els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">Uploading to GitHub...</span>';
-
-        window.SocialWavesGitHub.publishCampaignToGitHub(payload, function (stepMsg) {
-          els.publishStatus.innerHTML = '<span style="color:#047857;font-weight:600;">' + window.escapeHtml(stepMsg) + '</span>';
-        }).then(function (res) {
-          els.publishBtn.disabled = false;
-          const synced = res.campaign;
-          window.SocialWavesData.saveCustomCampaign(synced);
-          const curAll = window.SocialWavesData.getAllCampaigns().filter(function (c) { return c.id !== synced.id; });
-          curAll.unshift(synced);
-          window.SocialWavesData.setRemoteCampaigns(curAll);
-          const launchUrl = 'campaign?id=' + encodeURIComponent(synced.id);
-          const shortUrl = res.pagesBase + encodeURIComponent(synced.id);
-
-          els.publishStatus.innerHTML =
-            '<div style="color:#047857;font-weight:700;">Live on GitHub! Short URL ready.</div>' +
-            '<div style="margin-top:6px;"><a href="' + shortUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + window.escapeHtml(shortUrl) + '</a></div>' +
-            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Short Link</button>' +
-            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
-            '</div>';
-          wirePublishActionButtons(shortUrl, synced);
-          renderSavedCustomList();
-        }).catch(function (err) {
-          els.publishBtn.disabled = false;
-          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(payload);
-          const fullShareUrl = new URL(launchUrl, window.location.href).href;
-          els.publishStatus.innerHTML =
-            '<div style="color:#dc2626;font-weight:700;">GitHub auto-upload failed: ' + window.escapeHtml(err.message || 'Unknown error') + '</div>' +
-            '<div style="margin-top:4px;font-size:13px;">Saved locally. <a href="' + launchUrl + '" style="font-weight:700;text-decoration:underline;">Open Local Preview &rarr;</a></div>' +
-            '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
-            '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
             '</div>';
           wirePublishActionButtons(fullShareUrl, payload);
           renderSavedCustomList();
@@ -1325,7 +1262,7 @@
         : { available: false, configured: false };
 
       let html =
-        '<div style="color:#b45309;font-weight:700;">Saved in THIS browser only (not synced to server yet).</div>' +
+        '<div style="color:#b45309;font-weight:700;">Saved in THIS browser only (connect MySQL or Vercel Blob for public sync).</div>' +
         '<div style="margin-top:6px;"><a href="' + launchUrl +
         '" style="font-weight:700;text-decoration:underline;">Preview "' + window.escapeHtml(payload.title) + '" &rarr;</a></div>' +
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
@@ -1334,11 +1271,9 @@
         '</div>';
 
       if (srvStatus.available && !srvStatus.configured) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">So EVERY user sees <code>/' + window.escapeHtml(payload.id) + '</code>: in Vercel Dashboard click <strong>Storage &rarr; Create Blob Store</strong> and Redeploy.</div>';
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">So EVERY user sees <code>/' + window.escapeHtml(payload.id) + '</code>: enable <strong>Storage &rarr; Blob</strong> in Vercel or start XAMPP MySQL.</div>';
       } else if (hasOversizedLocalPng) {
-        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Large frame image cannot fit in URL; connect Vercel Blob or GitHub Auto-Upload so everyone sees it.</div>';
-      } else {
-        html += '<div style="margin-top:6px;font-size:12px;color:#64748b;">For public short links (<code>/' + window.escapeHtml(payload.id) + '</code>) visible to everyone on Home &amp; All Campaigns, connect Vercel Blob or GitHub Auto-Upload.</div>';
+        html += '<div style="margin-top:8px;font-size:12px;color:#b45309;line-height:1.45;">Large frame image cannot fit in URL; save via PHP+MySQL or Vercel Blob so everyone sees it.</div>';
       }
       els.publishStatus.innerHTML = html;
       wirePublishActionButtons(fullShareUrl, payload);
@@ -1354,6 +1289,9 @@
       state.title = existing.title;
       state.subtitle = existing.subtitle || '';
       state.badge = existing.badge || 'Custom Campaign';
+      state.startDate = existing.startDate || '';
+      state.endDate = existing.endDate || '';
+      state.validityDays = Number(existing.validityDays) || 0;
       state.headerTag = existing.headerTag || existing.title.toUpperCase();
       state.footerText = existing.footerText || '';
       state.frameWidth = existing.frameWidth || 800;

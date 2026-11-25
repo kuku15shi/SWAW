@@ -45,6 +45,10 @@ function sw_row_to_campaign(array $row): array
         'customFrameUrl' => $row['custom_frame_url'],
         'fields' => is_array($fields) ? $fields : [],
         'textSlots' => is_array($textSlots) ? $textSlots : [],
+        'startDate' => (string)($row['start_date'] ?? ''),
+        'endDate' => (string)($row['end_date'] ?? ''),
+        'validityDays' => (int)($row['validity_days'] ?? 0),
+        'createdAt' => !empty($row['created_at']) ? strtotime((string)$row['created_at']) * 1000 : (int)$row['updated_at'],
         '_updatedAt' => (int)$row['updated_at'],
     ];
 }
@@ -56,7 +60,22 @@ if ($method === 'GET') {
     $stats = [];
     $statRows = $pdo->query('SELECT `campaign_id`, COUNT(*) AS `cnt` FROM `posters` GROUP BY `campaign_id`')->fetchAll();
     foreach ($statRows as $sr) {
-        $stats[$sr['campaign_id']] = (int)$sr['cnt'];
+        $stats[$sr['campaign_id']] = [
+            'clicks' => 0,
+            'posters' => (int)$sr['cnt'],
+            'downloads' => 0,
+        ];
+    }
+
+    $metricRows = $pdo->query('SELECT `campaign_id`, `clicks`, `posters`, `downloads` FROM `campaign_metrics`')->fetchAll();
+    foreach ($metricRows as $mr) {
+        $cid = $mr['campaign_id'];
+        $prevPosters = isset($stats[$cid]) ? (int)$stats[$cid]['posters'] : 0;
+        $stats[$cid] = [
+            'clicks' => (int)$mr['clicks'],
+            'posters' => max($prevPosters, (int)$mr['posters']),
+            'downloads' => (int)$mr['downloads'],
+        ];
     }
 
     sw_json([
@@ -113,14 +132,19 @@ if ($method === 'POST') {
     }
 
     $updatedAt = (int)round(microtime(true) * 1000);
+    $startDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($c['startDate'] ?? '')) ? (string)$c['startDate'] : '';
+    $endDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($c['endDate'] ?? '')) ? (string)$c['endDate'] : '';
+    $validityDays = max(0, min(3650, (int)($c['validityDays'] ?? 0)));
+
     $stmt = $pdo->prepare("
         INSERT INTO `campaigns` (
             `id`, `title`, `subtitle`, `badge`, `frame_id`,
             `frame_width`, `frame_height`, `crop_width`, `crop_height`,
             `slot_json`, `palette_json`, `header_tag`, `footer_text`,
             `custom_frame_url`, `fields_json`, `text_slots_json`,
+            `start_date`, `end_date`, `validity_days`,
             `created_by`, `updated_at`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             `title` = VALUES(`title`),
             `subtitle` = VALUES(`subtitle`),
@@ -137,6 +161,9 @@ if ($method === 'POST') {
             `custom_frame_url` = VALUES(`custom_frame_url`),
             `fields_json` = VALUES(`fields_json`),
             `text_slots_json` = VALUES(`text_slots_json`),
+            `start_date` = VALUES(`start_date`),
+            `end_date` = VALUES(`end_date`),
+            `validity_days` = VALUES(`validity_days`),
             `created_by` = VALUES(`created_by`),
             `updated_at` = VALUES(`updated_at`)
     ");
@@ -158,6 +185,9 @@ if ($method === 'POST') {
         substr($frameUrl, 0, 512),
         json_encode($c['fields'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         json_encode($c['textSlots'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        $startDate,
+        $endDate,
+        $validityDays,
         $adminUser,
         $updatedAt,
     ]);
@@ -183,6 +213,8 @@ if ($method === 'DELETE') {
 
     $del = $pdo->prepare('DELETE FROM `campaigns` WHERE `id` = ?');
     $del->execute([$id]);
+    $pdo->prepare('DELETE FROM `campaign_metrics` WHERE `campaign_id` = ?')->execute([$id]);
+    $pdo->prepare('DELETE FROM `posters` WHERE `campaign_id` = ?')->execute([$id]);
 
     $framesDir = sw_config()['frames_dir'];
     foreach (glob($framesDir . DIRECTORY_SEPARATOR . $id . '.*') ?: [] as $oldFile) {

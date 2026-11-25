@@ -15,7 +15,22 @@ if ($method === 'GET') {
     $stats = [];
     $statRows = $pdo->query('SELECT `campaign_id`, COUNT(*) AS `cnt` FROM `posters` GROUP BY `campaign_id`')->fetchAll();
     foreach ($statRows as $sr) {
-        $stats[$sr['campaign_id']] = (int)$sr['cnt'];
+        $stats[$sr['campaign_id']] = [
+            'clicks' => 0,
+            'posters' => (int)$sr['cnt'],
+            'downloads' => 0,
+        ];
+    }
+
+    $metricRows = $pdo->query('SELECT `campaign_id`, `clicks`, `posters`, `downloads` FROM `campaign_metrics`')->fetchAll();
+    foreach ($metricRows as $mr) {
+        $cid = $mr['campaign_id'];
+        $prevPosters = isset($stats[$cid]) ? (int)$stats[$cid]['posters'] : 0;
+        $stats[$cid] = [
+            'clicks' => (int)$mr['clicks'],
+            'posters' => max($prevPosters, (int)$mr['posters']),
+            'downloads' => (int)$mr['downloads'],
+        ];
     }
 
     $recent = [];
@@ -34,29 +49,43 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $body = sw_read_json_body();
     $campaignId = trim((string)($body['campaignId'] ?? ''));
+    $event = trim((string)($body['event'] ?? 'poster'));
     if ($campaignId === '' || !preg_match('/^[A-Za-z0-9_-]{2,40}$/', $campaignId)) {
         sw_json(['ok' => false, 'error' => 'Valid campaignId is required.'], 400);
     }
+    if (!in_array($event, ['click', 'poster', 'download'], true)) {
+        sw_json(['ok' => false, 'error' => 'Invalid event type.'], 400);
+    }
 
-    $values = isset($body['formValues']) && is_array($body['formValues']) ? $body['formValues'] : [];
-    $supporterName = trim((string)($values['name'] ?? ($values['supporter_name'] ?? '')));
+    if ($event === 'click') {
+        $pdo->prepare('INSERT INTO `campaign_metrics` (`campaign_id`, `clicks`, `posters`, `downloads`) VALUES (?, 1, 0, 0) ON DUPLICATE KEY UPDATE `clicks` = `clicks` + 1')->execute([$campaignId]);
+    } elseif ($event === 'download') {
+        $pdo->prepare('INSERT INTO `campaign_metrics` (`campaign_id`, `clicks`, `posters`, `downloads`) VALUES (?, 0, 0, 1) ON DUPLICATE KEY UPDATE `downloads` = `downloads` + 1')->execute([$campaignId]);
+    } else {
+        $pdo->prepare('INSERT INTO `campaign_metrics` (`campaign_id`, `clicks`, `posters`, `downloads`) VALUES (?, 0, 1, 0) ON DUPLICATE KEY UPDATE `posters` = `posters` + 1')->execute([$campaignId]);
+        $values = isset($body['formValues']) && is_array($body['formValues']) ? $body['formValues'] : [];
+        $supporterName = trim((string)($values['name'] ?? ($values['supporter_name'] ?? '')));
+        $ins = $pdo->prepare('INSERT INTO `posters` (`campaign_id`, `supporter_name`, `form_values_json`) VALUES (?, ?, ?)');
+        $ins->execute([
+            $campaignId,
+            substr($supporterName, 0, 191),
+            json_encode($values, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+    }
 
-    $ins = $pdo->prepare('INSERT INTO `posters` (`campaign_id`, `supporter_name`, `form_values_json`) VALUES (?, ?, ?)');
-    $ins->execute([
-        $campaignId,
-        substr($supporterName, 0, 191),
-        json_encode($values, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-    ]);
-
-    $cntStmt = $pdo->prepare('SELECT COUNT(*) FROM `posters` WHERE `campaign_id` = ?');
-    $cntStmt->execute([$campaignId]);
-    $total = (int)$cntStmt->fetchColumn();
+    $mStmt = $pdo->prepare('SELECT `clicks`, `posters`, `downloads` FROM `campaign_metrics` WHERE `campaign_id` = ? LIMIT 1');
+    $mStmt->execute([$campaignId]);
+    $metrics = $mStmt->fetch() ?: ['clicks' => 0, 'posters' => 0, 'downloads' => 0];
 
     sw_json([
         'ok' => true,
         'mode' => 'php-mysql',
         'campaignId' => $campaignId,
-        'count' => $total,
+        'metrics' => [
+            'clicks' => (int)$metrics['clicks'],
+            'posters' => (int)$metrics['posters'],
+            'downloads' => (int)$metrics['downloads'],
+        ],
     ]);
 }
 

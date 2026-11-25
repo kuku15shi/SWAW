@@ -524,6 +524,9 @@
     }
     if (campaign.customFrameUrl) compact.u = campaign.customFrameUrl;
     if (campaign.customFrameFallbackUrl) compact.fu = campaign.customFrameFallbackUrl;
+    if (campaign.startDate) compact.sd = campaign.startDate;
+    if (campaign.endDate) compact.ed = campaign.endDate;
+    if (campaign.validityDays) compact.vd = Number(campaign.validityDays) || 0;
     if (campaign.customFrameDataUrl && campaign.customFrameDataUrl.length <= maxDataUrlLen) {
       compact.d = campaign.customFrameDataUrl;
     } else if (campaign.shareFrameDataUrl && campaign.shareFrameDataUrl.length <= maxDataUrlLen) {
@@ -587,6 +590,9 @@
           }),
           customFrameUrl: p.u || '',
           customFrameFallbackUrl: p.fu || '',
+          startDate: p.sd || '',
+          endDate: p.ed || '',
+          validityDays: Number(p.vd) || 0,
           customFrameDataUrl: p.d || null
         };
       }
@@ -651,41 +657,217 @@
     return getCampaignById(fallbackId);
   }
 
-  function getPosterStats() {
-    let localStats = {};
-    try {
-      const raw = localStorage.getItem(STORAGE_STATS_KEY);
-      localStats = raw ? JSON.parse(raw) : {};
-    } catch (e) {
-      localStats = {};
-    }
-    const merged = Object.assign({}, localStats);
-    Object.keys(REMOTE_STATS || {}).forEach(function (k) {
-      merged[k] = Math.max(Number(merged[k]) || 0, Number(REMOTE_STATS[k]) || 0);
-    });
-    return merged;
+  const STORAGE_METRICS_KEY = 'sw_campaign_metrics_v1';
+
+  function parseYmdLocal(ymd) {
+    const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   }
 
-  function incrementPosterStat(campaignId, formValues) {
-    const stats = getPosterStats();
-    stats[campaignId] = (stats[campaignId] || 0) + 1;
+  function formatYmdLocal(dateObj) {
+    const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function getCampaignScheduleInfo(campaign, nowRef) {
+    const now = nowRef ? new Date(nowRef) : new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const MS_DAY = 86400000;
+
+    let start = parseYmdLocal(campaign && campaign.startDate);
+    if (!start && campaign && (campaign.createdAt || campaign._updatedAt)) {
+      const d = new Date(Number(campaign.createdAt || campaign._updatedAt));
+      if (!isNaN(d.getTime())) start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    const validityDays = Math.max(0, Number(campaign && campaign.validityDays) || 0);
+    let end = parseYmdLocal(campaign && campaign.endDate);
+    if (!end && validityDays > 0) {
+      const baseStart = start || today;
+      end = new Date(baseStart.getTime() + (validityDays - 1) * MS_DAY);
+    }
+
+    const startStr = start ? formatYmdLocal(start) : '';
+    const endStr = end ? formatYmdLocal(end) : '';
+
+    if (!end) {
+      const daysRunning = start ? Math.max(1, Math.floor((today - start) / MS_DAY) + 1) : 0;
+      return {
+        status: 'unlimited',
+        label: 'Unlimited',
+        runLabel: daysRunning > 0 ? ('Running ' + daysRunning + 'd') : 'Always Active',
+        daysLeft: Infinity,
+        daysRunning: daysRunning,
+        startDate: startStr,
+        endDate: '',
+        validityDays: 0
+      };
+    }
+
+    if (start && today < start) {
+      const startsIn = Math.ceil((start - today) / MS_DAY);
+      return {
+        status: 'scheduled',
+        label: 'Starts in ' + startsIn + 'd',
+        runLabel: startStr + ' -> ' + endStr,
+        daysLeft: Math.round((end - start) / MS_DAY) + 1,
+        daysRunning: 0,
+        startDate: startStr,
+        endDate: endStr,
+        validityDays: validityDays
+      };
+    }
+
+    const daysLeft = Math.round((end - today) / MS_DAY);
+    const effectiveEnd = today < end ? today : end;
+    const daysRunning = start ? Math.max(1, Math.round((effectiveEnd - start) / MS_DAY) + 1) : 0;
+
+    if (daysLeft < 0) {
+      const ago = Math.abs(daysLeft);
+      return {
+        status: 'expired',
+        label: ago === 1 ? 'Expired 1d ago' : ('Expired ' + ago + 'd ago'),
+        runLabel: daysRunning > 0 ? ('Ran ' + daysRunning + 'd') : ('Ended ' + endStr),
+        daysLeft: daysLeft,
+        daysRunning: daysRunning,
+        startDate: startStr,
+        endDate: endStr,
+        validityDays: validityDays
+      };
+    }
+
+    if (daysLeft <= 7) {
+      return {
+        status: 'expiring',
+        label: daysLeft === 0 ? 'Ends Today' : (daysLeft + 'd left'),
+        runLabel: daysRunning > 0 ? ('Day ' + daysRunning + (validityDays ? '/' + validityDays : '')) : ('Ends ' + endStr),
+        daysLeft: daysLeft,
+        daysRunning: daysRunning,
+        startDate: startStr,
+        endDate: endStr,
+        validityDays: validityDays
+      };
+    }
+
+    return {
+      status: 'active',
+      label: daysLeft + 'd left',
+      runLabel: daysRunning > 0 ? ('Day ' + daysRunning + (validityDays ? '/' + validityDays : '')) : ('Ends ' + endStr),
+      daysLeft: daysLeft,
+      daysRunning: daysRunning,
+      startDate: startStr,
+      endDate: endStr,
+      validityDays: validityDays
+    };
+  }
+
+  function normalizeMetricEntry(val) {
+    if (typeof val === 'number') {
+      return { clicks: 0, posters: Math.max(0, val), downloads: 0 };
+    }
+    if (val && typeof val === 'object') {
+      return {
+        clicks: Math.max(0, Number(val.clicks) || 0),
+        posters: Math.max(0, Number(val.posters) || 0),
+        downloads: Math.max(0, Number(val.downloads) || 0)
+      };
+    }
+    return { clicks: 0, posters: 0, downloads: 0 };
+  }
+
+  function getAllMetrics() {
+    let localMetrics = {};
+    let legacyStats = {};
     try {
-      localStorage.setItem(STORAGE_STATS_KEY, JSON.stringify(stats));
+      const rawM = localStorage.getItem(STORAGE_METRICS_KEY);
+      localMetrics = rawM ? JSON.parse(rawM) : {};
+    } catch (e) {
+      localMetrics = {};
+    }
+    try {
+      const rawL = localStorage.getItem(STORAGE_STATS_KEY);
+      legacyStats = rawL ? JSON.parse(rawL) : {};
+    } catch (e) {
+      legacyStats = {};
+    }
+
+    const out = {};
+    const allKeys = new Set([].concat(
+      Object.keys(legacyStats || {}),
+      Object.keys(localMetrics || {}),
+      Object.keys(REMOTE_STATS || {})
+    ));
+    allKeys.forEach(function (id) {
+      const leg = normalizeMetricEntry(legacyStats[id]);
+      const loc = normalizeMetricEntry(localMetrics[id]);
+      const rem = normalizeMetricEntry(REMOTE_STATS[id]);
+      out[id] = {
+        clicks: Math.max(leg.clicks, loc.clicks, rem.clicks),
+        posters: Math.max(leg.posters, loc.posters, rem.posters),
+        downloads: Math.max(leg.downloads, loc.downloads, rem.downloads)
+      };
+    });
+    return out;
+  }
+
+  function getPosterStats() {
+    const all = getAllMetrics();
+    const out = {};
+    Object.keys(all).forEach(function (k) {
+      out[k] = all[k].posters;
+    });
+    return out;
+  }
+
+  function recordMetric(campaignId, eventType, formValues) {
+    if (!campaignId) return { clicks: 0, posters: 0, downloads: 0 };
+    const ev = (eventType === 'click' || eventType === 'download') ? eventType : 'poster';
+    const all = getAllMetrics();
+    const cur = all[campaignId] ? Object.assign({}, all[campaignId]) : { clicks: 0, posters: 0, downloads: 0 };
+    if (ev === 'click') cur.clicks += 1;
+    else if (ev === 'download') cur.downloads += 1;
+    else cur.posters += 1;
+
+    try {
+      const rawM = localStorage.getItem(STORAGE_METRICS_KEY);
+      const saved = rawM ? JSON.parse(rawM) : {};
+      saved[campaignId] = cur;
+      localStorage.setItem(STORAGE_METRICS_KEY, JSON.stringify(saved));
+      if (ev === 'poster') {
+        const rawL = localStorage.getItem(STORAGE_STATS_KEY);
+        const leg = rawL ? JSON.parse(rawL) : {};
+        leg[campaignId] = cur.posters;
+        localStorage.setItem(STORAGE_STATS_KEY, JSON.stringify(leg));
+      }
     } catch (e) {
       // ignore storage errors
     }
-    if (SERVER_STATUS && SERVER_STATUS.mode === 'php-mysql' && typeof fetch === 'function') {
+
+    if (SERVER_STATUS && SERVER_STATUS.available && typeof fetch === 'function') {
       fetch('api/posters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId: campaignId, formValues: formValues || {} })
+        keepalive: true,
+        body: JSON.stringify({ campaignId: campaignId, event: ev, formValues: formValues || {} })
       }).then(function (r) { return r.json(); }).then(function (d) {
-        if (d && d.ok && typeof d.count === 'number') {
-          REMOTE_STATS[campaignId] = d.count;
+        if (d && d.ok && d.metrics) {
+          REMOTE_STATS[campaignId] = normalizeMetricEntry(d.metrics);
+        } else if (d && d.ok && typeof d.count === 'number') {
+          const prev = normalizeMetricEntry(REMOTE_STATS[campaignId]);
+          prev.posters = d.count;
+          REMOTE_STATS[campaignId] = prev;
         }
       }).catch(function () {});
     }
-    return stats[campaignId];
+
+    return cur;
+  }
+
+  function incrementPosterStat(campaignId, formValues) {
+    return recordMetric(campaignId, 'poster', formValues).posters;
   }
 
   function drawRoundedRectPath(ctx, x, y, w, h, r) {
@@ -917,6 +1099,9 @@
     saveCustomCampaign: saveCustomCampaign,
     deleteCustomCampaign: deleteCustomCampaign,
     isCustomCampaign: isCustomCampaign,
+    getCampaignScheduleInfo: getCampaignScheduleInfo,
+    getAllMetrics: getAllMetrics,
+    recordMetric: recordMetric,
     getPosterStats: getPosterStats,
     incrementPosterStat: incrementPosterStat,
     renderFrameDataUrl: renderFrameDataUrl,

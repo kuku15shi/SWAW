@@ -1,5 +1,5 @@
 -- SocialWaves Standalone - MySQL Schema
--- Automatically initialized on first request by php_api/db.php,
+-- Automatically initialized and migrated on first request by php_api/db.php,
 -- or import manually into phpMyAdmin.
 
 CREATE DATABASE IF NOT EXISTS `socialwaves_db`
@@ -34,11 +34,23 @@ CREATE TABLE IF NOT EXISTS `campaigns` (
   `custom_frame_url` VARCHAR(512) NOT NULL DEFAULT '',
   `fields_json` LONGTEXT NOT NULL,
   `text_slots_json` LONGTEXT NOT NULL,
+  `start_date` VARCHAR(20) NOT NULL DEFAULT '',
+  `end_date` VARCHAR(20) NOT NULL DEFAULT '',
+  `validity_days` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_by` VARCHAR(64) NOT NULL DEFAULT 'admin',
   `updated_at` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_campaigns_updated` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `campaign_metrics` (
+  `campaign_id` VARCHAR(40) NOT NULL,
+  `clicks` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `posters` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `downloads` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`campaign_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `posters` (

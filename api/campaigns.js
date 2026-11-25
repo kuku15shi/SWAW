@@ -179,6 +179,17 @@ async function ghSaveCampaign(campaign, cfg) {
   return clean;
 }
 
+async function blobReadMetrics() {
+  const { list } = require('@vercel/blob');
+  const res = await list({ prefix: 'sw/metrics.json', limit: 5 });
+  const hit = (res.blobs || []).find(function (b) { return b.pathname === 'sw/metrics.json'; });
+  if (!hit || !hit.url) return {};
+  const resp = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!resp.ok) return {};
+  const data = await resp.json();
+  return (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const mode = getStorageMode();
@@ -187,7 +198,9 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       if (mode === 'vercel-blob') {
         const campaigns = await blobReadCampaigns();
-        return res.status(200).json({ ok: true, configured: true, mode: mode, campaigns: campaigns });
+        let stats = {};
+        try { stats = await blobReadMetrics(); } catch (e) { stats = {}; }
+        return res.status(200).json({ ok: true, configured: true, mode: mode, campaigns: campaigns, stats: stats });
       }
       if (mode === 'github-env') {
         const resGh = await ghReadCampaigns(getGitHubEnvConfig());

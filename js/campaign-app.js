@@ -458,6 +458,27 @@
     titleEl.textContent = campaign.title;
     subtitleEl.textContent = campaign.subtitle || 'Create and download poster with your own image';
     if (badgePill) badgePill.textContent = campaign.badge || 'Campaign';
+
+    if (typeof window.SocialWavesData.recordMetric === 'function') {
+      window.SocialWavesData.recordMetric(campaign.id, 'click');
+    }
+
+    const sched = typeof window.SocialWavesData.getCampaignScheduleInfo === 'function'
+      ? window.SocialWavesData.getCampaignScheduleInfo(campaign)
+      : { status: 'unlimited' };
+    if ((sched.status === 'expired' || sched.status === 'scheduled') && formEl) {
+      const msg = sched.status === 'expired'
+        ? ('This campaign ended (' + sched.label + '). Poster creation is closed.')
+        : ('This campaign is scheduled to start on ' + sched.startDate + ' (' + sched.label + ').');
+      subtitleEl.innerHTML = '<span style="color:#dc2626;font-weight:700;">' + msg + '</span>';
+      const createBtn = formEl.querySelector('.btn-create');
+      if (createBtn) {
+        createBtn.disabled = true;
+        createBtn.textContent = sched.status === 'expired' ? 'Campaign Ended' : 'Starts ' + sched.startDate;
+        createBtn.style.opacity = '0.55';
+        createBtn.style.cursor = 'not-allowed';
+      }
+    }
     if (ratioPill) ratioPill.textContent = (campaign.cropWidth || 243) + ' × ' + (campaign.cropHeight || 292) + ' px';
     if (frameIdInput) {
       frameIdInput.value = (selectedFrame && selectedFrame.id) || campaign.frameId || '5203';
@@ -730,6 +751,11 @@
     if (newPosterBtn) {
       newPosterBtn.addEventListener('click', function () {
         window.location.reload();
+      });
+    }
+    if (dwBtn && typeof window.SocialWavesData.recordMetric === 'function') {
+      dwBtn.addEventListener('click', function () {
+        window.SocialWavesData.recordMetric(campaign.id, 'download');
       });
     }
   }

@@ -8,11 +8,20 @@
   <link href="css/style.css" rel="stylesheet">
   <style>
     .dash-wrap { max-width: 1140px; margin: 98px auto 60px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
-    .dash-stats-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
-    .dash-stat-box { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 16px; padding: 16px 20px; box-shadow: 0 8px 24px rgba(4,120,87,0.06); }
-    .dash-stat-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
-    .dash-stat-val { font-size: 26px; font-weight: 800; color: #047857; margin-top: 4px; font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
-    .dash-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 24px; align-items: start; }
+    .dash-stats-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .dash-stat-box { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 16px; padding: 15px 18px; box-shadow: 0 8px 24px rgba(4,120,87,0.06); }
+    .dash-stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+    .dash-stat-val { font-size: 25px; font-weight: 800; color: #047857; margin-top: 4px; font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
+    .dash-grid { display: grid; grid-template-columns: 0.92fr 1.38fr; gap: 22px; align-items: start; }
+    .dash-filter-bar { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 14px; align-items: center; }
+    .dash-filter-bar input, .dash-filter-bar select { min-height: 40px; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.84); font-size: 13px; font-family: inherit; color: #17211f; width: 100%; }
+    .status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+    .status-active { background: #d1fae5; color: #047857; }
+    .status-expiring { background: #fef3c7; color: #b45309; }
+    .status-expired { background: #fee2e2; color: #b91c1c; }
+    .status-scheduled { background: #e0f2fe; color: #0369a1; }
+    .status-unlimited { background: #e2e8f0; color: #334155; }
+    .dash-subtext { font-size: 11.5px; color: #64748b; margin-top: 2px; }
     .dash-card { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 26px; box-shadow: 0 12px 32px rgba(4,120,87,0.07), 0 2px 8px rgba(23,33,31,0.04); min-width: 0; }
     .dash-card h3 { color: #17211f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(4,120,87,0.1); background: linear-gradient(135deg, #047857 0%, #059669 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .dash-field { margin-bottom: 14px; }
@@ -35,13 +44,16 @@
     .dash-mini-btn.danger { color: #dc2626; border-color: rgba(220,38,38,0.22); }
     .dash-mini-btn.danger:hover { background: #fee2e2; border-color: #f87171; }
 
-    @media (max-width: 900px) {
+    @media (max-width: 960px) {
       .dash-grid { grid-template-columns: 1fr; }
+      .dash-stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dash-filter-bar { grid-template-columns: 1fr 1fr; }
     }
 
     @media (max-width: 680px) {
       .dash-wrap { margin: 82px auto 36px; padding: 0 12px; }
-      .dash-stats-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+      .dash-stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+      .dash-filter-bar { grid-template-columns: 1fr; gap: 8px; }
       .dash-stat-box { padding: 12px 10px; border-radius: 14px; text-align: center; }
       .dash-stat-label { font-size: 10px; }
       .dash-stat-val { font-size: 20px; }
@@ -125,16 +137,20 @@
 
     <div class="dash-stats-strip">
       <div class="dash-stat-box">
-        <div class="dash-stat-label">Total Campaigns</div>
+        <div class="dash-stat-label">Active Campaigns</div>
         <div class="dash-stat-val" id="stat-total-camps">0</div>
       </div>
       <div class="dash-stat-box">
-        <div class="dash-stat-label">Custom Created</div>
-        <div class="dash-stat-val" id="stat-custom-camps">0</div>
+        <div class="dash-stat-label">Link Clicks</div>
+        <div class="dash-stat-val" id="stat-total-clicks">0</div>
       </div>
       <div class="dash-stat-box">
-        <div class="dash-stat-label">Total Posters</div>
+        <div class="dash-stat-label">Posters Created</div>
         <div class="dash-stat-val" id="stat-total-posters">0</div>
+      </div>
+      <div class="dash-stat-box">
+        <div class="dash-stat-label">Downloads</div>
+        <div class="dash-stat-val" id="stat-total-downloads">0</div>
       </div>
     </div>
 
@@ -178,24 +194,67 @@
             <label for="c-extra">Optional Second Field Label (leave blank for Name-only)</label>
             <input id="c-extra" placeholder="e.g. Organization / Role">
           </div>
+          <div class="dash-row-2">
+            <div class="dash-field">
+              <label for="c-start">Start Date</label>
+              <input id="c-start" type="date">
+            </div>
+            <div class="dash-field">
+              <label for="c-validity">Validity / Run Time</label>
+              <select id="c-validity">
+                <option value="0">Unlimited (Always Active)</option>
+                <option value="7">7 Days</option>
+                <option value="15">15 Days</option>
+                <option value="30" selected>30 Days</option>
+                <option value="90">90 Days</option>
+                <option value="365">1 Year (365 Days)</option>
+              </select>
+            </div>
+          </div>
+          <div class="dash-field">
+            <label for="c-end">End Date (auto-calculated or pick custom)</label>
+            <input id="c-end" type="date">
+          </div>
           <button type="submit" class="dash-btn">Publish Campaign</button>
           <p id="create-msg" style="margin-top: 10px; font-size: 13px; color: #16a34a;"></p>
         </form>
       </div>
 
       <div class="dash-card">
-        <h3>Campaign Reports &amp; Active URLs</h3>
-        <div class="dash-field" style="margin-bottom:12px;">
-          <input type="search" id="dash-search" placeholder="Search campaigns by name or code...">
+        <h3>Campaign Analytics, Filters &amp; Expiry</h3>
+        <div class="dash-filter-bar">
+          <input type="search" id="dash-search" placeholder="Search title, code, category...">
+          <select id="dash-filter-status" aria-label="Filter by running status">
+            <option value="all">All Status</option>
+            <option value="running">Active / Running</option>
+            <option value="expiring">Expiring Soon (&le;7d)</option>
+            <option value="expired">Expired</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="unlimited">Unlimited</option>
+          </select>
+          <select id="dash-filter-source" aria-label="Filter by source">
+            <option value="all">All Types</option>
+            <option value="custom">Custom Only</option>
+            <option value="builtin">Built-in Only</option>
+          </select>
+          <select id="dash-sort" aria-label="Sort campaigns">
+            <option value="newest">Sort: Default Order</option>
+            <option value="clicks">Most Clicks</option>
+            <option value="posters">Most Posters</option>
+            <option value="downloads">Most Downloads</option>
+            <option value="ending">Ending Soonest</option>
+          </select>
+          <button type="button" id="dash-clear-filters" class="dash-mini-btn">Reset</button>
         </div>
         <div class="dash-table-wrap">
           <table class="dash-table">
             <thead>
               <tr>
                 <th>Campaign</th>
-                <th>Code</th>
-                <th>Crop Ratio</th>
+                <th>Run Time / Days Left</th>
+                <th>Clicks</th>
                 <th>Posters</th>
+                <th>Downloads</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -208,7 +267,6 @@
 
   <script src="js/admin-auth.js"></script>
   <script src="js/campaigns-data.js"></script>
-  <script src="js/github-sync.js"></script>
   <script src="js/main.js"></script>
   <script>
     (function () {
@@ -285,32 +343,105 @@
       });
 
       function bootDashboard() {
+        const cStartEl = document.getElementById('c-start');
+        const cValidityEl = document.getElementById('c-validity');
+        const cEndEl = document.getElementById('c-end');
+
+        function setDefaultCreateDates() {
+          const d = new Date();
+          const ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          if (cStartEl && !cStartEl.value) cStartEl.value = ymd;
+          syncCreateEndDate();
+        }
+        function syncCreateEndDate() {
+          if (!cStartEl || !cValidityEl || !cEndEl) return;
+          const days = Number(cValidityEl.value) || 0;
+          if (days > 0 && cStartEl.value) {
+            const pts = cStartEl.value.split('-').map(Number);
+            const endD = new Date(pts[0], pts[1] - 1, pts[2] + (days - 1));
+            cEndEl.value = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0');
+          } else if (days === 0) {
+            cEndEl.value = '';
+          }
+        }
+        if (cStartEl) cStartEl.addEventListener('change', syncCreateEndDate);
+        if (cValidityEl) cValidityEl.addEventListener('change', syncCreateEndDate);
+        setDefaultCreateDates();
 
       function renderTable() {
         const tbody = document.getElementById('reports-body');
         const searchInput = document.getElementById('dash-search');
+        const statusFilter = document.getElementById('dash-filter-status');
+        const sourceFilter = document.getElementById('dash-filter-source');
+        const sortSelect = document.getElementById('dash-sort');
+
         const q = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
-        const stats = window.SocialWavesData.getPosterStats();
+        const fStatus = statusFilter ? statusFilter.value : 'all';
+        const fSource = sourceFilter ? sourceFilter.value : 'all';
+        const fSort = sortSelect ? sortSelect.value : 'newest';
+
+        const allMetrics = typeof window.SocialWavesData.getAllMetrics === 'function'
+          ? window.SocialWavesData.getAllMetrics()
+          : {};
         const allList = window.SocialWavesData.getAllCampaigns();
 
-        const totalPosters = allList.reduce(function (sum, c) { return sum + (stats[c.id] || 0); }, 0);
-        const customCount = allList.filter(function (c) { return window.SocialWavesData.isCustomCampaign(c.id); }).length;
-        const elTotalCamps = document.getElementById('stat-total-camps');
-        const elCustomCamps = document.getElementById('stat-custom-camps');
-        const elTotalPosters = document.getElementById('stat-total-posters');
-        if (elTotalCamps) elTotalCamps.textContent = String(allList.length);
-        if (elCustomCamps) elCustomCamps.textContent = String(customCount);
-        if (elTotalPosters) elTotalPosters.textContent = String(totalPosters);
-
-        const list = allList.filter(function (c) {
-          return !q || c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q);
+        let sumClicks = 0, sumPosters = 0, sumDownloads = 0, activeCount = 0;
+        const enriched = allList.map(function (c) {
+          const m = allMetrics[c.id] || { clicks: 0, posters: 0, downloads: 0 };
+          const sched = typeof window.SocialWavesData.getCampaignScheduleInfo === 'function'
+            ? window.SocialWavesData.getCampaignScheduleInfo(c)
+            : { status: 'unlimited', label: 'Unlimited', runLabel: 'Always Active', daysLeft: Infinity };
+          const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
+          sumClicks += Number(m.clicks) || 0;
+          sumPosters += Number(m.posters) || 0;
+          sumDownloads += Number(m.downloads) || 0;
+          if (sched.status !== 'expired' && sched.status !== 'scheduled') activeCount += 1;
+          return { c: c, m: m, sched: sched, isCustom: isCustom };
         });
 
+        const elTotalCamps = document.getElementById('stat-total-camps');
+        const elClicks = document.getElementById('stat-total-clicks');
+        const elPosters = document.getElementById('stat-total-posters');
+        const elDownloads = document.getElementById('stat-total-downloads');
+        if (elTotalCamps) elTotalCamps.textContent = activeCount + ' / ' + allList.length;
+        if (elClicks) elClicks.textContent = String(sumClicks);
+        if (elPosters) elPosters.textContent = String(sumPosters);
+        if (elDownloads) elDownloads.textContent = String(sumDownloads);
+
+        let filtered = enriched.filter(function (row) {
+          const c = row.c;
+          if (q && !(c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.badge || '').toLowerCase().includes(q))) {
+            return false;
+          }
+          if (fSource === 'custom' && !row.isCustom) return false;
+          if (fSource === 'builtin' && row.isCustom) return false;
+          if (fStatus === 'running') {
+            return row.sched.status === 'active' || row.sched.status === 'expiring' || row.sched.status === 'unlimited';
+          }
+          if (fStatus !== 'all' && row.sched.status !== fStatus) return false;
+          return true;
+        });
+
+        if (fSort === 'clicks') {
+          filtered.sort(function (a, b) { return b.m.clicks - a.m.clicks; });
+        } else if (fSort === 'posters') {
+          filtered.sort(function (a, b) { return b.m.posters - a.m.posters; });
+        } else if (fSort === 'downloads') {
+          filtered.sort(function (a, b) { return b.m.downloads - a.m.downloads; });
+        } else if (fSort === 'ending') {
+          filtered.sort(function (a, b) {
+            const da = a.sched.daysLeft === Infinity ? 999999 : a.sched.daysLeft;
+            const db = b.sched.daysLeft === Infinity ? 999999 : b.sched.daysLeft;
+            return da - db;
+          });
+        }
+
         tbody.innerHTML = '';
-        list.forEach(function (c) {
+        filtered.forEach(function (row) {
+          const c = row.c;
+          const m = row.m;
+          const sched = row.sched;
           const tr = document.createElement('tr');
-          const count = stats[c.id] || 0;
-          const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
           const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
           const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
             ? window.SocialWavesData.getShortShareUrl(c)
@@ -319,22 +450,28 @@
           const escTitle = c.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           const escId = c.id.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           const escAbs = absUrl.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          const dateSpan = (sched.startDate || sched.endDate)
+            ? ('<div class="dash-subtext">' + (sched.startDate || 'Now') + (sched.endDate ? (' &rarr; ' + sched.endDate) : '') + '</div>')
+            : '';
+
           tr.innerHTML =
-            '<td data-label="Campaign"><strong>' + escTitle + '</strong></td>' +
-            '<td data-label="Code"><code>' + escId + '</code></td>' +
-            '<td data-label="Crop">' + c.cropWidth + '&times;' + c.cropHeight + '</td>' +
-            '<td data-label="Posters"><span class="dash-badge">' + count + '</span></td>' +
+            '<td data-label="Campaign"><strong>' + escTitle + '</strong><div><code>' + escId + '</code> <span class="dash-subtext">' + (c.cropWidth + '&times;' + c.cropHeight) + '</span></div>' + dateSpan + '</td>' +
+            '<td data-label="Run Time"><span class="status-pill status-' + sched.status + '">' + sched.label + '</span><div class="dash-subtext">' + sched.runLabel + '</div></td>' +
+            '<td data-label="Clicks"><span class="dash-badge">' + m.clicks + '</span></td>' +
+            '<td data-label="Posters"><span class="dash-badge">' + m.posters + '</span></td>' +
+            '<td data-label="Downloads"><span class="dash-badge">' + m.downloads + '</span></td>' +
             '<td data-label="Actions"><div class="dash-actions">' +
               '<a class="dash-mini-btn" href="' + launchUrl + '">Open</a>' +
               '<button type="button" class="dash-mini-btn" data-copy-link="' + escAbs + '">Copy</button>' +
               '<a class="dash-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' +
-              (isCustom ? '<button type="button" class="dash-mini-btn danger" data-del-id="' + escId + '">Delete</button>' : '') +
+              (row.isCustom && sched.endDate ? '<button type="button" class="dash-mini-btn" data-extend-id="' + escId + '">+30d</button>' : '') +
+              (row.isCustom ? '<button type="button" class="dash-mini-btn danger" data-del-id="' + escId + '">Delete</button>' : '') +
             '</div></td>';
           tbody.appendChild(tr);
         });
 
-        if (!list.length) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">No matching campaigns.</td></tr>';
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No campaigns match your filter.</td></tr>';
         }
 
         tbody.querySelectorAll('[data-copy-link]').forEach(function (btn) {
@@ -351,6 +488,35 @@
           });
         });
 
+        tbody.querySelectorAll('[data-extend-id]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const extId = btn.dataset.extendId;
+            const target = window.SocialWavesData.getCampaignById(extId);
+            if (!target) return;
+            const now = new Date();
+            const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const curSched = window.SocialWavesData.getCampaignScheduleInfo(target);
+            if (curSched.endDate && curSched.daysLeft > 0) {
+              const pts = curSched.endDate.split('-').map(Number);
+              baseDate.setFullYear(pts[0], pts[1] - 1, pts[2]);
+            }
+            const nextEnd = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 30);
+            const nextEndStr = nextEnd.getFullYear() + '-' + String(nextEnd.getMonth() + 1).padStart(2, '0') + '-' + String(nextEnd.getDate()).padStart(2, '0');
+            const updated = Object.assign({}, target, {
+              endDate: nextEndStr,
+              validityDays: (Number(target.validityDays) || 0) + 30,
+              _updatedAt: Date.now()
+            });
+            window.SocialWavesData.saveCustomCampaign(updated);
+            const srv = window.SocialWavesData.getServerStatus();
+            if (srv.configured) {
+              window.SocialWavesData.saveCampaignToServer(updated).then(renderTable).catch(renderTable);
+            } else {
+              renderTable();
+            }
+          });
+        });
+
         tbody.querySelectorAll('[data-del-id]').forEach(function (btn) {
           btn.addEventListener('click', function () {
             const delId = btn.dataset.delId;
@@ -360,8 +526,6 @@
               : { configured: false };
             if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
               window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
-            } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
-              window.SocialWavesGitHub.deleteCampaignFromGitHub(delId).catch(function () {});
             }
             renderTable();
           });
@@ -369,8 +533,23 @@
       }
 
       const dashSearchEl = document.getElementById('dash-search');
-      if (dashSearchEl) {
-        dashSearchEl.addEventListener('input', renderTable);
+      const dashStatusEl = document.getElementById('dash-filter-status');
+      const dashSourceEl = document.getElementById('dash-filter-source');
+      const dashSortEl = document.getElementById('dash-sort');
+      const dashClearEl = document.getElementById('dash-clear-filters');
+      [dashSearchEl, dashStatusEl, dashSourceEl, dashSortEl].forEach(function (el) {
+        if (!el) return;
+        el.addEventListener('input', renderTable);
+        el.addEventListener('change', renderTable);
+      });
+      if (dashClearEl) {
+        dashClearEl.addEventListener('click', function () {
+          if (dashSearchEl) dashSearchEl.value = '';
+          if (dashStatusEl) dashStatusEl.value = 'all';
+          if (dashSourceEl) dashSourceEl.value = 'all';
+          if (dashSortEl) dashSortEl.value = 'newest';
+          renderTable();
+        });
       }
 
       document.getElementById('create-campaign-form').addEventListener('submit', function (e) {
@@ -382,6 +561,9 @@
         const cw = parseInt(document.getElementById('c-w').value, 10) || 260;
         const ch = parseInt(document.getElementById('c-h').value, 10) || 300;
         const extra = document.getElementById('c-extra').value.trim();
+        const startDate = cStartEl ? cStartEl.value : '';
+        const validityDays = cValidityEl ? (parseInt(cValidityEl.value, 10) || 0) : 0;
+        const endDate = cEndEl ? cEndEl.value : '';
 
         const ratio = cw / ch;
         const slotW = 280;
@@ -401,6 +583,10 @@
           title: title,
           subtitle: subtitle,
           badge: 'Custom Campaign',
+          startDate: startDate,
+          endDate: endDate,
+          validityDays: validityDays,
+          _updatedAt: Date.now(),
           frameId: String(Date.now()).slice(-4),
           cropWidth: cw,
           cropHeight: ch,
@@ -425,10 +611,10 @@
           ? window.SocialWavesData.getServerStatus()
           : { available: false, configured: false };
         if (srv.available && !srv.configured) {
-          msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#b45309;">Other users will NOT see it yet — enable Vercel <strong>Storage &rarr; Blob</strong> &amp; Redeploy.</div>';
+          msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#b45309;">Other users will NOT see it yet — enable Vercel <strong>Storage &rarr; Blob</strong> &amp; start MySQL.</div>';
         }
         if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
-          msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to cloud...)</span>';
+          msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to database...)</span>';
           window.SocialWavesData.saveCampaignToServer(newPayload).then(function (res) {
             const synced = res.campaign || newPayload;
             window.SocialWavesData.saveCustomCampaign(synced);
@@ -437,25 +623,11 @@
             renderTable();
           }).catch(function (err) {
             const s = document.getElementById('dash-gh-sync');
-            if (s) s.textContent = '(Cloud save failed: ' + err.message + ')';
-          });
-        } else if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
-          msgEl.innerHTML += ' <span id="dash-gh-sync">(Uploading to GitHub...)</span>';
-          window.SocialWavesGitHub.publishCampaignToGitHub(newPayload).then(function (res) {
-            const synced = res.campaign;
-            window.SocialWavesData.saveCustomCampaign(synced);
-            const curAll = window.SocialWavesData.getAllCampaigns().filter(function (c) { return c.id !== synced.id; });
-            curAll.unshift(synced);
-            window.SocialWavesData.setRemoteCampaigns(curAll);
-            const liveUrl = res.pagesBase + encodeURIComponent(synced.id);
-            msgEl.innerHTML = 'Live! Short Link: <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + liveUrl + '</a>';
-            renderTable();
-          }).catch(function (err) {
-            const s = document.getElementById('dash-gh-sync');
-            if (s) s.textContent = '(GitHub upload failed: ' + err.message + ')';
+            if (s) s.textContent = '(Server save failed: ' + err.message + ')';
           });
         }
         e.target.reset();
+        setDefaultCreateDates();
         renderTable();
       });
 
