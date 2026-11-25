@@ -171,8 +171,9 @@
 
     if (window.SocialWavesAdminAuth && typeof window.SocialWavesAdminAuth.checkSession === 'function') {
       window.SocialWavesAdminAuth.checkSession().then(function (st) {
-        isAdminSession = Boolean(st && st.authenticated);
-        if (isAdminSession) markAdminLinks();
+        const role = (st && st.role) || '';
+        isAdminSession = Boolean(st && st.authenticated && (role === 'super_admin' || role === 'manager'));
+        if (st && st.authenticated) markAdminLinks();
         if (typeof onAdminStateChange === 'function') onAdminStateChange();
       }).catch(function () {});
     }

@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `username` VARCHAR(64) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
+  `role` VARCHAR(32) NOT NULL DEFAULT 'editor',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_admin_username` (`username`)

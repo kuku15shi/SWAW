@@ -3,82 +3,286 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - SocialWaves</title>
+  <title>KPI Admin Dashboard - SocialWaves</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <style>
-    .dash-wrap { max-width: 1140px; margin: 98px auto 60px; padding: 0 20px; animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
-    .dash-stats-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
-    .dash-stat-box { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 16px; padding: 15px 18px; box-shadow: 0 8px 24px rgba(4,120,87,0.06); }
-    .dash-stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
-    .dash-stat-val { font-size: 25px; font-weight: 800; color: #047857; margin-top: 4px; font-family: "Plus Jakarta Sans", "Inter", sans-serif; }
-    .dash-grid { display: grid; grid-template-columns: 0.92fr 1.38fr; gap: 22px; align-items: start; }
-    .dash-filter-bar { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 14px; align-items: center; }
-    .dash-filter-bar input, .dash-filter-bar select { min-height: 40px; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.84); font-size: 13px; font-family: inherit; color: #17211f; width: 100%; }
-    .status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-    .status-active { background: #d1fae5; color: #047857; }
-    .status-expiring { background: #fef3c7; color: #b45309; }
-    .status-expired { background: #fee2e2; color: #b91c1c; }
-    .status-scheduled { background: #e0f2fe; color: #0369a1; }
-    .status-unlimited { background: #e2e8f0; color: #334155; }
-    .dash-subtext { font-size: 11.5px; color: #64748b; margin-top: 2px; }
-    .dash-card { background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.82); border-radius: 18px; padding: 26px; box-shadow: 0 12px 32px rgba(4,120,87,0.07), 0 2px 8px rgba(23,33,31,0.04); min-width: 0; }
-    .dash-card h3 { color: #17211f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(4,120,87,0.1); background: linear-gradient(135deg, #047857 0%, #059669 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .dash-field { margin-bottom: 14px; }
-    .dash-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #17211f; }
-    .dash-field input, .dash-field select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid rgba(4,120,87,0.16); background: rgba(255,255,255,0.78); color: #17211f; border-radius: 12px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
-    .dash-field input:focus, .dash-field select:focus { background: #ffffff; border-color: #047857; box-shadow: 0 0 0 4px rgba(52,211,153,0.22); }
-    .dash-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .dash-btn { width: 100%; min-height: 46px; background: linear-gradient(135deg, #047857, #059669); color: #fff; border: 0; padding: 12px 24px; border-radius: 999px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 8px 20px rgba(4,120,87,0.22); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .dash-btn:hover { background: linear-gradient(135deg, #065f46, #047857); transform: translateY(-1px); }
-    .dash-btn:active { transform: scale(0.98); }
-    .dash-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .dash-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .dash-table th, .dash-table td { padding: 12px 10px; border-bottom: 1px solid rgba(4,120,87,0.08); text-align: left; vertical-align: middle; }
-    .dash-table th { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; white-space: nowrap; }
-    .dash-table tr:hover td { background: rgba(209,250,229,0.28); }
-    .dash-badge { display: inline-block; background: #d1fae5; color: #047857; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
-    .dash-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .dash-mini-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(4,120,87,0.18); background: rgba(255,255,255,0.88); color: #047857; font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; font-family: inherit; transition: background-color 0.15s ease, border-color 0.15s ease; }
-    .dash-mini-btn:hover { background: #d1fae5; border-color: #34d399; color: #065f46; }
-    .dash-mini-btn.danger { color: #dc2626; border-color: rgba(220,38,38,0.22); }
-    .dash-mini-btn.danger:hover { background: #fee2e2; border-color: #f87171; }
-
-    @media (max-width: 960px) {
-      .dash-grid { grid-template-columns: 1fr; }
-      .dash-stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .dash-filter-bar { grid-template-columns: 1fr 1fr; }
+    :root {
+      --kpi-bg: #0b1026;
+      --kpi-shell: #12183a;
+      --kpi-card: #171e46;
+      --kpi-card-alt: #1c2452;
+      --kpi-border: rgba(148, 163, 184, 0.16);
+      --kpi-cyan: #22d3ee;
+      --kpi-green: #22c55e;
+      --kpi-red: #f87171;
+      --kpi-amber: #fbbf24;
+      --kpi-text: #f8fafc;
+      --kpi-muted: #94a3b8;
     }
 
+    body.kpi-dark-body {
+      background: radial-gradient(circle at 12% 10%, rgba(34, 211, 238, 0.12), transparent 38%),
+                  radial-gradient(circle at 88% 12%, rgba(34, 197, 94, 0.1), transparent 36%),
+                  var(--kpi-bg);
+      color: var(--kpi-text);
+      min-height: 100vh;
+    }
+
+    body.kpi-dark-body #header {
+      background: rgba(16, 22, 56, 0.92);
+      border-bottom: 1px solid var(--kpi-border);
+      backdrop-filter: blur(14px);
+    }
+    body.kpi-dark-body #header .logo h1 a span { color: #ffffff; }
+    body.kpi-dark-body .nav-menu a { color: #cbd5e1; }
+    body.kpi-dark-body .nav-menu a:hover,
+    body.kpi-dark-body .nav-menu .active > a { color: var(--kpi-cyan); }
+    body.kpi-dark-body .mobile-nav-toggle { color: #ffffff; background: rgba(23, 30, 70, 0.9); border-color: var(--kpi-border); }
+
+    body.admin-locked #header, body.admin-locked main, body.admin-locked .mobile-nav-toggle { display: none; }
+    .admin-auth-gate { display: none; min-height: 75vh; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--kpi-cyan); font-weight: 700; }
+    body.admin-locked .admin-auth-gate { display: flex; }
+
+    .dash-wrap { max-width: 1240px; margin: 86px auto 54px; padding: 0 18px; animation: fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+
+    /* Top Security & Role Ribbon */
+    .security-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 14px; padding: 11px 16px; border-radius: 12px;
+      background: var(--kpi-shell); border: 1px solid var(--kpi-border); font-size: 13px;
+    }
+    .security-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+      background: rgba(34, 211, 238, 0.14); color: var(--kpi-cyan); border: 1px solid rgba(34, 211, 238, 0.32);
+      font-weight: 700; font-size: 12px;
+    }
+    .role-badge {
+      display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .role-super_admin { background: rgba(34, 211, 238, 0.16); color: #22d3ee; border: 1px solid rgba(34, 211, 238, 0.35); }
+    .role-manager { background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); }
+    .role-editor { background: rgba(251, 191, 36, 0.16); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); }
+    .role-viewer { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.35); }
+
+    /* Outer KPI Board matching reference layout */
+    .kpi-board {
+      background: var(--kpi-shell);
+      border: 1px solid var(--kpi-border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 22px 54px rgba(3, 6, 23, 0.55);
+      margin-bottom: 20px;
+    }
+    .kpi-top-panel {
+      background: var(--kpi-card);
+      border: 1px solid var(--kpi-border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.95fr 1.15fr;
+      gap: 22px;
+      margin-bottom: 12px;
+    }
+    .kpi-panel-heading { font-size: 14px; font-weight: 700; color: #ffffff; margin: 0 0 10px; display: flex; align-items: center; justify-content: space-between; }
+    .kpi-sub-heading { font-size: 12px; color: var(--kpi-muted); font-weight: 500; margin: 0 0 10px; }
+
+    /* Vertical Cyan Bar Chart */
+    .kpi-vchart {
+      position: relative;
+      height: 152px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 14px 4px 24px 26px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      background-image: linear-gradient(to top, rgba(148,163,184,0.12) 1px, transparent 1px);
+      background-size: 100% 34px;
+    }
+    .kpi-vaxis {
+      position: absolute; left: 0; top: 8px; bottom: 22px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-size: 10px; color: var(--kpi-muted);
+    }
+    .kpi-vbar-col { flex: 1; min-width: 18px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+    .kpi-vbar-fill {
+      width: 68%; min-height: 4px; border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, #38bdf8 0%, #22d3ee 100%);
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.28);
+      transition: height 0.35s ease;
+    }
+    .kpi-vbar-lbl {
+      position: absolute; bottom: -20px; font-size: 10px; color: var(--kpi-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 44px;
+    }
+
+    /* Horizontal Cyan Status Bars */
+    .kpi-hbar-list { display: flex; flex-direction: column; gap: 12px; }
+    .kpi-hbar-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+    .kpi-hbar-label { font-size: 12px; color: #e2e8f0; font-weight: 500; }
+    .kpi-hbar-count { font-size: 12px; color: #ffffff; font-weight: 700; text-align: right; }
+    .kpi-hbar-track { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: #0d1230; overflow: hidden; }
+    .kpi-hbar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #06b6d4, #22d3ee); transition: width 0.35s ease; }
+
+    /* Nearing Expiry SLA Table */
+    .kpi-sla-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .kpi-sla-table th { text-align: left; color: var(--kpi-muted); font-size: 10.5px; font-weight: 600; padding: 0 6px 6px 0; border-bottom: 1px solid var(--kpi-border); }
+    .kpi-sla-table td { padding: 5px 6px 5px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+    .kpi-sla-time-warn { color: #fbbf24; font-weight: 700; }
+    .kpi-sla-time-danger { color: #f87171; font-weight: 700; }
+
+    /* Bottom 5-Column KPI Grid */
+    .kpi-bottom-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .kpi-metric-card {
+      background: var(--kpi-card);
+      border: 1px solid var(--kpi-border);
+      border-radius: 10px;
+      padding: 15px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+    .kpi-card-title { font-size: 14px; font-weight: 700; color: #ffffff; margin: 0 0 12px; }
+    .kpi-big-num {
+      font-size: 30px; font-weight: 800; color: #ffffff; line-height: 1.05;
+      font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+    }
+    .kpi-big-label { font-size: 11.5px; color: var(--kpi-muted); margin-top: 3px; margin-bottom: 12px; }
+
+    .kpi-callout {
+      position: relative;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: rgba(15, 20, 48, 0.55);
+    }
+    .kpi-callout.green { border: 1px solid rgba(34, 197, 94, 0.55); }
+    .kpi-callout.red { border: 1px solid rgba(248, 113, 113, 0.6); }
+    .kpi-callout-badge {
+      position: absolute; right: -8px; bottom: -8px;
+      width: 24px; height: 24px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+    }
+    .kpi-callout.green .kpi-callout-badge { background: #22c55e; }
+    .kpi-callout.red .kpi-callout-badge { background: #ef4444; }
+
+    /* Gauge */
+    .kpi-gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding-top: 4px; }
+    .kpi-gauge-svg { width: 100%; max-width: 190px; overflow: visible; }
+
+    /* Top Leaderboard */
+    .kpi-leader-list { display: flex; flex-direction: column; gap: 9px; }
+    .kpi-leader-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+    .kpi-leader-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .kpi-avatar {
+      width: 22px; height: 22px; border-radius: 999px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; color: #0b1026;
+      background: linear-gradient(135deg, #22d3ee, #34d399);
+    }
+    .kpi-leader-name { color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi-leader-val { font-weight: 700; color: #ffffff; font-variant-numeric: tabular-nums; }
+
+    .kpi-footer-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      margin-top: 12px; padding: 6px 4px 0; font-size: 12.5px; color: #e2e8f0;
+    }
+
+    /* Dark Cards for Filters, Campaigns Table, Create Form & Admin Users */
+    .dash-section-grid { display: grid; grid-template-columns: 0.92fr 1.38fr; gap: 18px; align-items: start; margin-bottom: 18px; }
+    .dash-card {
+      background: var(--kpi-shell);
+      border: 1px solid var(--kpi-border);
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 14px 36px rgba(3, 6, 23, 0.42);
+      min-width: 0;
+      color: var(--kpi-text);
+    }
+    .dash-card h3 {
+      margin: 0 0 14px; padding-bottom: 10px; font-size: 17px; font-weight: 700;
+      color: #ffffff; border-bottom: 1px solid var(--kpi-border);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .dash-field { margin-bottom: 13px; }
+    .dash-field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }
+    .dash-field input, .dash-field select, .dash-filter-bar input, .dash-filter-bar select, .user-role-select {
+      width: 100%; min-height: 40px; padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: #0f1535; color: #ffffff; border-radius: 10px;
+      font-size: 13.5px; font-family: inherit; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .dash-field input:focus, .dash-field select:focus, .dash-filter-bar input:focus, .dash-filter-bar select:focus {
+      border-color: var(--kpi-cyan); box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+    }
+    .dash-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dash-row-4 { display: grid; grid-template-columns: 1.1fr 1.1fr 1fr auto; gap: 10px; align-items: end; }
+    .dash-btn {
+      width: 100%; min-height: 44px;
+      background: linear-gradient(135deg, #06b6d4, #22c55e); color: #071026;
+      border: 0; padding: 10px 22px; border-radius: 999px; font-weight: 800; font-size: 14px;
+      cursor: pointer; box-shadow: 0 8px 22px rgba(34, 211, 238, 0.22); transition: transform 0.15s ease;
+    }
+    .dash-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+    .dash-filter-bar { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 14px; align-items: center; }
+
+    .dash-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dash-table { width: 100%; border-collapse: collapse; font-size: 13.5px; color: #e2e8f0; }
+    .dash-table th, .dash-table td { padding: 11px 9px; border-bottom: 1px solid rgba(148, 163, 184, 0.12); text-align: left; vertical-align: middle; }
+    .dash-table th { color: var(--kpi-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; white-space: nowrap; }
+    .dash-table tr:hover td { background: rgba(34, 211, 238, 0.05); }
+    .dash-table code { background: rgba(34, 211, 238, 0.12); color: var(--kpi-cyan); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
+
+    .status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .status-active { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+    .status-expiring { background: rgba(251, 191, 36, 0.18); color: #fbbf24; }
+    .status-expired { background: rgba(248, 113, 113, 0.18); color: #f87171; }
+    .status-scheduled { background: rgba(34, 211, 238, 0.18); color: #22d3ee; }
+    .status-unlimited { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+    .dash-subtext { font-size: 11.5px; color: var(--kpi-muted); margin-top: 2px; }
+    .dash-badge { display: inline-block; background: rgba(34, 211, 238, 0.12); color: #22d3ee; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+
+    .dash-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .dash-mini-btn {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 30px;
+      padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.24);
+      background: #1c2452; color: #e2e8f0; font-size: 12px; font-weight: 600;
+      text-decoration: none; cursor: pointer; font-family: inherit;
+    }
+    .dash-mini-btn:hover { background: rgba(34, 211, 238, 0.18); border-color: var(--kpi-cyan); color: #ffffff; }
+    .dash-mini-btn.danger { color: #fca5a5; border-color: rgba(248, 113, 113, 0.35); }
+    .dash-mini-btn.danger:hover { background: rgba(239, 68, 68, 0.22); border-color: #f87171; color: #ffffff; }
+
+    @media (max-width: 1100px) {
+      .kpi-top-panel { grid-template-columns: 1fr; }
+      .kpi-bottom-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dash-section-grid { grid-template-columns: 1fr; }
+      .dash-row-4 { grid-template-columns: 1fr 1fr; }
+    }
     @media (max-width: 680px) {
-      .dash-wrap { margin: 82px auto 36px; padding: 0 12px; }
-      .dash-stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
-      .dash-filter-bar { grid-template-columns: 1fr; gap: 8px; }
-      .dash-stat-box { padding: 12px 10px; border-radius: 14px; text-align: center; }
-      .dash-stat-label { font-size: 10px; }
-      .dash-stat-val { font-size: 20px; }
-      .dash-card { padding: 18px 14px; border-radius: 16px; }
-      .dash-row-2 { grid-template-columns: 1fr; gap: 0; }
+      .dash-wrap { margin: 78px auto 34px; padding: 0 10px; }
+      .kpi-bottom-grid { grid-template-columns: 1fr; }
+      .dash-filter-bar, .dash-row-2, .dash-row-4 { grid-template-columns: 1fr; }
       .dash-table thead { display: none; }
       .dash-table, .dash-table tbody, .dash-table tr, .dash-table td { display: block; width: 100%; }
-      .dash-table tr { background: rgba(255,255,255,0.72); border: 1px solid rgba(4,120,87,0.12); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; }
-      .dash-table tr:hover td { background: transparent; }
-      .dash-table td { border-bottom: 1px dashed rgba(4,120,87,0.1); padding: 7px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: right; }
-      .dash-table td:last-child { border-bottom: 0; padding-top: 10px; justify-content: flex-start; text-align: left; }
-      .dash-table td[data-label]::before { content: attr(data-label); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; text-align: left; flex-shrink: 0; }
+      .dash-table tr { background: #171e46; border: 1px solid var(--kpi-border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+      .dash-table td { border-bottom: 1px dashed rgba(148, 163, 184, 0.14); padding: 7px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: right; }
+      .dash-table td:last-child { border-bottom: 0; justify-content: flex-start; text-align: left; }
+      .dash-table td[data-label]::before { content: attr(data-label); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--kpi-muted); text-align: left; flex-shrink: 0; }
       .dash-table td[data-label="Actions"]::before { display: none; }
-      .dash-actions { width: 100%; }
-      .dash-mini-btn { min-height: 38px; padding: 6px 12px; font-size: 12.5px; }
     }
-    body.admin-locked #header, body.admin-locked main, body.admin-locked .mobile-nav-toggle { display: none; }
-    .admin-auth-gate { display: none; min-height: 75vh; align-items: center; justify-content: center; text-align: center; padding: 24px; color: #047857; font-weight: 700; }
-    body.admin-locked .admin-auth-gate { display: flex; }
-    .security-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,0.72); border: 1px solid rgba(4,120,87,0.16); font-size: 13px; }
-    .security-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; background: #d1fae5; color: #047857; font-weight: 700; font-size: 12px; }
-    .security-pill.warn { background: #fef3c7; color: #92400e; }
   </style>
 </head>
-<body class="admin-locked">
+<body class="admin-locked kpi-dark-body">
   <div class="admin-auth-gate" id="admin-auth-gate">Verifying Admin Session...</div>
   <button type="button" class="mobile-nav-toggle" aria-label="Toggle navigation">&#9776;</button>
 
@@ -89,8 +293,8 @@
         <ul>
           <li><a href="./">Home</a></li>
           <li><a href="all-campaigns">All Campaigns</a></li>
-          <li><a href="studio">Custom Studio</a></li>
-          <li class="active"><a href="dashboard">Admin Panel</a></li>
+          <li><a href="studio">Upload Poster Studio</a></li>
+          <li class="active"><a href="dashboard">Admin KPI Panel</a></li>
           <li><a href="#" id="logout-btn">Logout</a></li>
         </ul>
       </nav>
@@ -101,8 +305,8 @@
     <ul>
       <li><a href="./">Home</a></li>
       <li><a href="all-campaigns">All Campaigns</a></li>
-      <li><a href="studio">Custom Studio</a></li>
-      <li class="active"><a href="dashboard">Admin Panel</a></li>
+      <li><a href="studio">Upload Poster Studio</a></li>
+      <li class="active"><a href="dashboard">Admin KPI Panel</a></li>
       <li><a href="#" id="mobile-logout-btn">Logout</a></li>
     </ul>
   </nav>
@@ -112,15 +316,16 @@
     <div class="security-bar" id="security-bar">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="security-pill" id="sec-mode-pill">Admin Verified</span>
-        <span id="sec-warning-text" style="color:#64748b;font-size:12px;"></span>
+        <span class="role-badge role-super_admin" id="sec-role-pill">SUPER ADMIN</span>
+        <span id="sec-warning-text" style="color:var(--kpi-muted);font-size:12px;"></span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button type="button" id="sec-pwd-toggle" class="dash-mini-btn" style="display:none;">Change Password</button>
-        <a href="studio" class="dash-mini-btn">Open Studio</a>
+        <a href="studio" class="dash-mini-btn">+ Public Studio</a>
       </div>
     </div>
 
-    <div class="dash-card" id="change-pass-card" style="display:none;margin-bottom:20px;padding:18px 20px;">
+    <div class="dash-card" id="change-pass-card" style="display:none;margin-bottom:16px;padding:18px 20px;">
       <form id="change-pass-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;">
         <div class="dash-field" style="flex:1;min-width:170px;margin:0;">
           <label for="cur-admin-pass">Current Password</label>
@@ -135,32 +340,169 @@
       </form>
     </div>
 
-    <div class="dash-stats-strip">
-      <div class="dash-stat-box">
-        <div class="dash-stat-label">Active Campaigns</div>
-        <div class="dash-stat-val" id="stat-total-camps">0</div>
-      </div>
-      <div class="dash-stat-box">
-        <div class="dash-stat-label">Link Clicks</div>
-        <div class="dash-stat-val" id="stat-total-clicks">0</div>
-      </div>
-      <div class="dash-stat-box">
-        <div class="dash-stat-label">Posters Created</div>
-        <div class="dash-stat-val" id="stat-total-posters">0</div>
-      </div>
-      <div class="dash-stat-box">
-        <div class="dash-stat-label">Downloads</div>
-        <div class="dash-stat-val" id="stat-total-downloads">0</div>
-      </div>
-    </div>
+    <!-- Reference-Inspired Dark KPI Dashboard Board -->
+    <section class="kpi-board" aria-label="Campaign KPI Overview">
+      <div class="kpi-top-panel">
+        <div>
+          <div class="kpi-panel-heading"><span>Campaigns</span><span class="kpi-sub-heading" style="margin:0;">Posters Output</span></div>
+          <div class="kpi-sub-heading">Top campaign output today</div>
+          <div class="kpi-vchart" id="kpi-activity-chart">
+            <div class="kpi-vaxis" id="kpi-vaxis"><span>10</span><span>5</span><span>0</span></div>
+          </div>
+        </div>
 
-    <div class="dash-grid">
-      <div class="dash-card">
-        <h3>Create New Campaign</h3>
-        <p style="font-size:13px;color:#4b5563;margin:-8px 0 14px;">
-          Need visual drag &amp; drop image slot positioning or custom PNG frame uploads?
-          <a href="studio" style="font-weight:700;">Open Visual Studio &rarr;</a>
-        </p>
+        <div>
+          <div class="kpi-panel-heading" style="margin-top:2px;"><span>Campaign Status</span></div>
+          <div class="kpi-sub-heading">Schedule distribution</div>
+          <div class="kpi-hbar-list" id="kpi-status-bars"></div>
+        </div>
+
+        <div>
+          <div class="kpi-panel-heading"><span>Campaigns nearing expiry</span></div>
+          <div class="kpi-sub-heading">Upcoming deadlines</div>
+          <table class="kpi-sla-table">
+            <thead>
+              <tr><th>Campaign</th><th>Code</th><th>Time left</th></tr>
+            </thead>
+            <tbody id="kpi-expiry-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="kpi-bottom-grid">
+        <div class="kpi-metric-card">
+          <div class="kpi-card-title">Clicks &amp; Reach</div>
+          <div>
+            <div class="kpi-big-num" id="stat-total-clicks">0</div>
+            <div class="kpi-big-label">Total link clicks</div>
+            <div class="kpi-big-num" style="font-size:24px;" id="stat-total-camps">0</div>
+            <div class="kpi-big-label">Active campaigns</div>
+          </div>
+          <div class="kpi-callout red">
+            <div class="kpi-big-num" style="font-size:24px;" id="kpi-expiring-count">0</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">Expiring within 7d</div>
+            <span class="kpi-callout-badge">!</span>
+          </div>
+        </div>
+
+        <div class="kpi-metric-card">
+          <div class="kpi-card-title">Posters Created</div>
+          <div>
+            <div class="kpi-big-num" id="stat-total-posters">0</div>
+            <div class="kpi-big-label">Supporter posters generated</div>
+          </div>
+          <div class="kpi-callout green">
+            <div class="kpi-big-num" style="font-size:24px;" id="kpi-conversion-pct">0%</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">Click-to-poster rate</div>
+            <span class="kpi-callout-badge">&#10003;</span>
+          </div>
+          <div>
+            <div class="kpi-big-num" style="font-size:22px;" id="kpi-public-count">0</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">Custom &amp; public campaigns</div>
+          </div>
+        </div>
+
+        <div class="kpi-metric-card">
+          <div class="kpi-card-title">Downloads</div>
+          <div class="kpi-callout green">
+            <div class="kpi-big-num" id="stat-total-downloads">0</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">PNG posters downloaded</div>
+            <span class="kpi-callout-badge">&#10003;</span>
+          </div>
+          <div>
+            <div class="kpi-big-num" style="font-size:22px;" id="kpi-scheduled-count">0</div>
+            <div class="kpi-big-label">Upcoming / scheduled</div>
+          </div>
+          <div class="kpi-callout red">
+            <div class="kpi-big-num" style="font-size:24px;" id="kpi-expired-count">0</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">Expired campaigns</div>
+            <span class="kpi-callout-badge">!</span>
+          </div>
+        </div>
+
+        <div class="kpi-metric-card">
+          <div class="kpi-card-title">Completion Rate</div>
+          <div class="kpi-gauge-wrap">
+            <svg class="kpi-gauge-svg" viewBox="0 0 200 125" aria-label="Download completion gauge">
+              <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#252e61" stroke-width="20" stroke-linecap="butt"/>
+              <path id="kpi-gauge-arc" d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#22c55e" stroke-width="20" stroke-linecap="butt" stroke-dasharray="245" stroke-dashoffset="245"/>
+              <line id="kpi-gauge-needle" x1="100" y1="100" x2="100" y2="34" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="100" cy="100" r="8" fill="#ffffff"/>
+              <text x="20" y="118" fill="#94a3b8" font-size="11" font-weight="600">0%</text>
+              <text x="155" y="118" fill="#94a3b8" font-size="11" font-weight="600">100%</text>
+            </svg>
+            <div class="kpi-big-num" id="kpi-gauge-text" style="margin-top:-2px;">0%</div>
+            <div class="kpi-big-label" style="margin-bottom:0;">Downloads / Posters</div>
+          </div>
+        </div>
+
+        <div class="kpi-metric-card">
+          <div class="kpi-card-title">Top campaigns</div>
+          <div class="kpi-leader-list" id="kpi-top-list"></div>
+        </div>
+      </div>
+
+      <div class="kpi-footer-bar">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;">
+          <span style="display:inline-flex;width:20px;height:20px;border-radius:5px;background:#22c55e;color:#0b1026;align-items:center;justify-content:center;font-weight:900;font-size:12px;">S</span>
+          <span>SocialWaves KPI Dashboard</span>
+        </div>
+        <div style="color:var(--kpi-muted);font-variant-numeric:tabular-nums;" id="kpi-clock">--:--</div>
+      </div>
+    </section>
+
+    <!-- Admin User Creation & Roles Panel (Super Admin only) -->
+    <section class="dash-card" id="users-admin-card" style="display:none;margin-bottom:18px;">
+      <h3>
+        <span>Admin Users &amp; Role Access (RBAC)</span>
+        <span style="font-size:12px;font-weight:500;color:var(--kpi-muted);">Super Admin Control</span>
+      </h3>
+      <form id="create-user-form" class="dash-row-4" style="margin-bottom:16px;">
+        <div class="dash-field" style="margin:0;">
+          <label for="u-username">Username</label>
+          <input id="u-username" required minlength="3" maxlength="40" pattern="[A-Za-z0-9_.-]{3,40}" placeholder="e.g. priya.manager">
+        </div>
+        <div class="dash-field" style="margin:0;">
+          <label for="u-password">Password (min 6 chars)</label>
+          <input id="u-password" type="password" required minlength="6" placeholder="Temporary password">
+        </div>
+        <div class="dash-field" style="margin:0;">
+          <label for="u-role">Role</label>
+          <select id="u-role">
+            <option value="manager">Manager (Create, Edit &amp; Delete)</option>
+            <option value="editor" selected>Editor (Create &amp; Edit only)</option>
+            <option value="viewer">Viewer (Read-only KPI Analytics)</option>
+            <option value="super_admin">Super Admin (Full + Users)</option>
+          </select>
+        </div>
+        <button type="submit" class="dash-btn" style="min-width:165px;">+ Create Admin</button>
+      </form>
+      <div id="user-mgmt-msg" style="font-size:12.5px;margin-bottom:12px;"></div>
+      <div class="dash-table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="dash-section-grid">
+      <div class="dash-card" id="create-campaign-card">
+        <h3>
+          <span>Create New Campaign</span>
+          <a href="studio" class="dash-mini-btn">Visual Studio &rarr;</a>
+        </h3>
+        <div id="viewer-readonly-notice" style="display:none;padding:12px;border-radius:10px;background:rgba(148,163,184,0.12);color:#cbd5e1;font-size:13px;margin-bottom:12px;">
+          Your account has the <strong>Viewer</strong> role (read-only KPI dashboard access). Ask a Super Admin to upgrade your role to create or edit campaigns.
+        </div>
         <form id="create-campaign-form">
           <div class="dash-field">
             <label for="c-title">Campaign Title</label>
@@ -177,7 +519,7 @@
             </div>
             <div class="dash-field">
               <label for="c-color">Primary Frame Color</label>
-              <input id="c-color" type="color" value="#047857" style="height: 44px; padding: 4px;">
+              <input id="c-color" type="color" value="#047857" style="height: 40px; padding: 3px;">
             </div>
           </div>
           <div class="dash-row-2">
@@ -216,7 +558,7 @@
             <input id="c-end" type="date">
           </div>
           <button type="submit" class="dash-btn">Publish Campaign</button>
-          <p id="create-msg" style="margin-top: 10px; font-size: 13px; color: #16a34a;"></p>
+          <p id="create-msg" style="margin-top: 10px; font-size: 13px; color: #4ade80;"></p>
         </form>
       </div>
 
@@ -285,31 +627,52 @@
       var mobileLogout = document.getElementById('mobile-logout-btn');
       if (mobileLogout) mobileLogout.addEventListener('click', handleLogout);
 
+      function updateClock() {
+        var el = document.getElementById('kpi-clock');
+        if (!el) return;
+        var now = new Date();
+        el.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      updateClock();
+      setInterval(updateClock, 30000);
+
+      function esc(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
       const authGate = window.SocialWavesAdminAuth
         ? window.SocialWavesAdminAuth.requireAdmin('dashboard')
-        : Promise.resolve({ authenticated: true });
+        : Promise.resolve({ authenticated: true, role: 'super_admin', username: 'admin' });
 
       authGate.then(function (sessionInfo) {
         if (!sessionInfo) return;
         document.body.classList.remove('admin-locked');
 
+        const activeRole = sessionInfo.role || 'super_admin';
+        const canWrite = activeRole === 'super_admin' || activeRole === 'manager' || activeRole === 'editor';
+        const canDelete = activeRole === 'super_admin' || activeRole === 'manager';
+        const canManageUsers = activeRole === 'super_admin';
+
         const secPill = document.getElementById('sec-mode-pill');
+        const rolePill = document.getElementById('sec-role-pill');
         const secWarn = document.getElementById('sec-warning-text');
         const pwdToggleBtn = document.getElementById('sec-pwd-toggle');
         const passCard = document.getElementById('change-pass-card');
+
         if (secPill) {
-          if (sessionInfo.engine === 'php-mysql') {
-            secPill.textContent = 'PHP + MySQL Protected (' + (sessionInfo.username || 'admin') + ')';
-          } else if (sessionInfo.serverBacked) {
-            secPill.textContent = 'Protected Cookie (' + (sessionInfo.username || 'admin') + ')';
-          } else {
-            secPill.textContent = 'Local Admin Session (' + (sessionInfo.username || 'admin') + ')';
-          }
+          secPill.textContent = sessionInfo.engine === 'php-mysql'
+            ? ('PHP + MySQL (' + (sessionInfo.username || 'admin') + ')')
+            : ('Local Admin Session (' + (sessionInfo.username || 'admin') + ')');
+        }
+        if (rolePill) {
+          rolePill.textContent = activeRole.replace('_', ' ').toUpperCase();
+          rolePill.className = 'role-badge role-' + activeRole;
         }
         if (secWarn && sessionInfo.usingDefaultPassword) {
           secWarn.textContent = sessionInfo.engine === 'php-mysql'
-            ? 'Security tip: Default password in use — click "Change Password" to set your MySQL admin password.'
-            : 'Tip: Start XAMPP Apache + MySQL so admin login uses database authentication.';
+            ? 'Security tip: Default password in use — click "Change Password" to secure your account.'
+            : 'Tip: Start XAMPP Apache + MySQL for multi-user roles and MySQL authentication.';
         }
         if (pwdToggleBtn && sessionInfo.engine === 'php-mysql') {
           pwdToggleBtn.style.display = 'inline-flex';
@@ -326,23 +689,140 @@
             const cur = document.getElementById('cur-admin-pass').value;
             const nxt = document.getElementById('new-admin-pass').value;
             const msg = document.getElementById('pwd-change-msg');
-            msg.style.color = '#64748b';
+            msg.style.color = '#94a3b8';
             msg.textContent = 'Updating password in MySQL...';
             window.SocialWavesAdminAuth.changePassword(cur, nxt).then(function (r) {
-              msg.style.color = '#047857';
+              msg.style.color = '#4ade80';
               msg.textContent = r.message || 'Password updated!';
               if (secWarn) secWarn.textContent = '';
               changePassForm.reset();
             }).catch(function (err) {
-              msg.style.color = '#dc2626';
+              msg.style.color = '#f87171';
               msg.textContent = (err && err.message) || 'Failed to update password.';
             });
           });
         }
-        bootDashboard();
+
+        // Viewer read-only enforcement in UI
+        if (!canWrite) {
+          const notice = document.getElementById('viewer-readonly-notice');
+          const createForm = document.getElementById('create-campaign-form');
+          if (notice) notice.style.display = 'block';
+          if (createForm) createForm.style.display = 'none';
+        }
+
+        // Admin Users & Roles (RBAC) Management
+        const usersCard = document.getElementById('users-admin-card');
+        if (canManageUsers && usersCard && sessionInfo.engine === 'php-mysql') {
+          usersCard.style.display = 'block';
+          initUsersManagement();
+        } else if (canManageUsers && usersCard) {
+          usersCard.style.display = 'block';
+          const userMsg = document.getElementById('user-mgmt-msg');
+          if (userMsg) {
+            userMsg.innerHTML = '<span style="color:#fbbf24;">Start XAMPP Apache &amp; MySQL to create and manage multi-role admin users in the database.</span>';
+          }
+        }
+
+        function initUsersManagement() {
+          const usersBody = document.getElementById('users-body');
+          const userMsg = document.getElementById('user-mgmt-msg');
+          const createForm = document.getElementById('create-user-form');
+
+          function refreshUsers() {
+            window.SocialWavesAdminAuth.listUsers().then(function (res) {
+              const myId = res.currentUserId;
+              const users = res.users || [];
+              usersBody.innerHTML = '';
+              users.forEach(function (u) {
+                const isSelf = u.id === myId;
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                  '<td data-label="User"><strong>' + esc(u.username) + '</strong>' + (isSelf ? ' <code>YOU</code>' : '') + '</td>' +
+                  '<td data-label="Role">' +
+                    '<select class="user-role-select" data-user-role="' + u.id + '"' + (isSelf ? ' disabled' : '') + ' style="min-height:32px;padding:4px 8px;width:auto;">' +
+                      '<option value="super_admin"' + (u.role === 'super_admin' ? ' selected' : '') + '>Super Admin</option>' +
+                      '<option value="manager"' + (u.role === 'manager' ? ' selected' : '') + '>Manager</option>' +
+                      '<option value="editor"' + (u.role === 'editor' ? ' selected' : '') + '>Editor</option>' +
+                      '<option value="viewer"' + (u.role === 'viewer' ? ' selected' : '') + '>Viewer</option>' +
+                    '</select>' +
+                  '</td>' +
+                  '<td data-label="Status"><span class="status-pill ' + (u.isActive ? 'status-active' : 'status-expired') + '">' + (u.isActive ? 'Active' : 'Disabled') + '</span></td>' +
+                  '<td data-label="Created"><span class="dash-subtext">' + esc((u.createdAt || '').slice(0, 10)) + '</span></td>' +
+                  '<td data-label="Actions"><div class="dash-actions">' +
+                    (isSelf ? '<span class="dash-subtext">Current Session</span>' : (
+                      '<button type="button" class="dash-mini-btn" data-toggle-user="' + u.id + '" data-next-active="' + (u.isActive ? '0' : '1') + '">' + (u.isActive ? 'Disable' : 'Enable') + '</button>' +
+                      '<button type="button" class="dash-mini-btn danger" data-delete-user="' + u.id + '">Delete</button>'
+                    )) +
+                  '</div></td>';
+                usersBody.appendChild(tr);
+              });
+
+              usersBody.querySelectorAll('[data-user-role]').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                  const uid = Number(sel.dataset.userRole);
+                  window.SocialWavesAdminAuth.updateUser(uid, { role: sel.value }).then(function (r) {
+                    userMsg.innerHTML = '<span style="color:#4ade80;">' + esc(r.message) + '</span>';
+                    refreshUsers();
+                  }).catch(function (err) {
+                    userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
+                    refreshUsers();
+                  });
+                });
+              });
+
+              usersBody.querySelectorAll('[data-toggle-user]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                  const uid = Number(btn.dataset.toggleUser);
+                  const nextActive = btn.dataset.nextActive === '1';
+                  window.SocialWavesAdminAuth.updateUser(uid, { isActive: nextActive }).then(function (r) {
+                    userMsg.innerHTML = '<span style="color:#4ade80;">' + esc(r.message) + '</span>';
+                    refreshUsers();
+                  }).catch(function (err) {
+                    userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
+                  });
+                });
+              });
+
+              usersBody.querySelectorAll('[data-delete-user]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                  const uid = Number(btn.dataset.deleteUser);
+                  window.SocialWavesAdminAuth.deleteUser(uid).then(function (r) {
+                    userMsg.innerHTML = '<span style="color:#4ade80;">' + esc(r.message) + '</span>';
+                    refreshUsers();
+                  }).catch(function (err) {
+                    userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
+                  });
+                });
+              });
+            }).catch(function (err) {
+              userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
+            });
+          }
+
+          if (createForm) {
+            createForm.addEventListener('submit', function (e) {
+              e.preventDefault();
+              const uname = document.getElementById('u-username').value.trim();
+              const upass = document.getElementById('u-password').value;
+              const urole = document.getElementById('u-role').value;
+              userMsg.innerHTML = '<span style="color:#94a3b8;">Creating admin user...</span>';
+              window.SocialWavesAdminAuth.createUser(uname, upass, urole).then(function (r) {
+                userMsg.innerHTML = '<span style="color:#4ade80;">' + esc(r.message) + '</span>';
+                createForm.reset();
+                refreshUsers();
+              }).catch(function (err) {
+                userMsg.innerHTML = '<span style="color:#f87171;">' + esc(err.message) + '</span>';
+              });
+            });
+          }
+          refreshUsers();
+        }
+
+        bootDashboard(canWrite, canDelete);
       });
 
-      function bootDashboard() {
+      function bootDashboard(canWrite, canDelete) {
         const cStartEl = document.getElementById('c-start');
         const cValidityEl = document.getElementById('c-validity');
         const cEndEl = document.getElementById('c-end');
@@ -368,274 +848,394 @@
         if (cValidityEl) cValidityEl.addEventListener('change', syncCreateEndDate);
         setDefaultCreateDates();
 
-      function renderTable() {
-        const tbody = document.getElementById('reports-body');
-        const searchInput = document.getElementById('dash-search');
-        const statusFilter = document.getElementById('dash-filter-status');
-        const sourceFilter = document.getElementById('dash-filter-source');
-        const sortSelect = document.getElementById('dash-sort');
-
-        const q = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
-        const fStatus = statusFilter ? statusFilter.value : 'all';
-        const fSource = sourceFilter ? sourceFilter.value : 'all';
-        const fSort = sortSelect ? sortSelect.value : 'newest';
-
-        const allMetrics = typeof window.SocialWavesData.getAllMetrics === 'function'
-          ? window.SocialWavesData.getAllMetrics()
-          : {};
-        const allList = window.SocialWavesData.getAllCampaigns();
-
-        let sumClicks = 0, sumPosters = 0, sumDownloads = 0, activeCount = 0;
-        const enriched = allList.map(function (c) {
-          const m = allMetrics[c.id] || { clicks: 0, posters: 0, downloads: 0 };
-          const sched = typeof window.SocialWavesData.getCampaignScheduleInfo === 'function'
-            ? window.SocialWavesData.getCampaignScheduleInfo(c)
-            : { status: 'unlimited', label: 'Unlimited', runLabel: 'Always Active', daysLeft: Infinity };
-          const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
-          sumClicks += Number(m.clicks) || 0;
-          sumPosters += Number(m.posters) || 0;
-          sumDownloads += Number(m.downloads) || 0;
-          if (sched.status !== 'expired' && sched.status !== 'scheduled') activeCount += 1;
-          return { c: c, m: m, sched: sched, isCustom: isCustom };
-        });
-
-        const elTotalCamps = document.getElementById('stat-total-camps');
-        const elClicks = document.getElementById('stat-total-clicks');
-        const elPosters = document.getElementById('stat-total-posters');
-        const elDownloads = document.getElementById('stat-total-downloads');
-        if (elTotalCamps) elTotalCamps.textContent = activeCount + ' / ' + allList.length;
-        if (elClicks) elClicks.textContent = String(sumClicks);
-        if (elPosters) elPosters.textContent = String(sumPosters);
-        if (elDownloads) elDownloads.textContent = String(sumDownloads);
-
-        let filtered = enriched.filter(function (row) {
-          const c = row.c;
-          if (q && !(c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.badge || '').toLowerCase().includes(q))) {
-            return false;
-          }
-          if (fSource === 'custom' && !row.isCustom) return false;
-          if (fSource === 'builtin' && row.isCustom) return false;
-          if (fStatus === 'running') {
-            return row.sched.status === 'active' || row.sched.status === 'expiring' || row.sched.status === 'unlimited';
-          }
-          if (fStatus !== 'all' && row.sched.status !== fStatus) return false;
-          return true;
-        });
-
-        if (fSort === 'clicks') {
-          filtered.sort(function (a, b) { return b.m.clicks - a.m.clicks; });
-        } else if (fSort === 'posters') {
-          filtered.sort(function (a, b) { return b.m.posters - a.m.posters; });
-        } else if (fSort === 'downloads') {
-          filtered.sort(function (a, b) { return b.m.downloads - a.m.downloads; });
-        } else if (fSort === 'ending') {
-          filtered.sort(function (a, b) {
-            const da = a.sched.daysLeft === Infinity ? 999999 : a.sched.daysLeft;
-            const db = b.sched.daysLeft === Infinity ? 999999 : b.sched.daysLeft;
-            return da - db;
-          });
-        }
-
-        tbody.innerHTML = '';
-        filtered.forEach(function (row) {
-          const c = row.c;
-          const m = row.m;
-          const sched = row.sched;
-          const tr = document.createElement('tr');
-          const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
-          const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
-            ? window.SocialWavesData.getShortShareUrl(c)
-            : launchUrl;
-          const absUrl = new URL(shortRel, window.location.href).href;
-          const escTitle = c.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-          const escId = c.id.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-          const escAbs = absUrl.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-          const dateSpan = (sched.startDate || sched.endDate)
-            ? ('<div class="dash-subtext">' + (sched.startDate || 'Now') + (sched.endDate ? (' &rarr; ' + sched.endDate) : '') + '</div>')
-            : '';
-
-          tr.innerHTML =
-            '<td data-label="Campaign"><strong>' + escTitle + '</strong><div><code>' + escId + '</code> <span class="dash-subtext">' + (c.cropWidth + '&times;' + c.cropHeight) + '</span></div>' + dateSpan + '</td>' +
-            '<td data-label="Run Time"><span class="status-pill status-' + sched.status + '">' + sched.label + '</span><div class="dash-subtext">' + sched.runLabel + '</div></td>' +
-            '<td data-label="Clicks"><span class="dash-badge">' + m.clicks + '</span></td>' +
-            '<td data-label="Posters"><span class="dash-badge">' + m.posters + '</span></td>' +
-            '<td data-label="Downloads"><span class="dash-badge">' + m.downloads + '</span></td>' +
-            '<td data-label="Actions"><div class="dash-actions">' +
-              '<a class="dash-mini-btn" href="' + launchUrl + '">Open</a>' +
-              '<button type="button" class="dash-mini-btn" data-copy-link="' + escAbs + '">Copy</button>' +
-              '<a class="dash-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' +
-              (row.isCustom && sched.endDate ? '<button type="button" class="dash-mini-btn" data-extend-id="' + escId + '">+30d</button>' : '') +
-              (row.isCustom ? '<button type="button" class="dash-mini-btn danger" data-del-id="' + escId + '">Delete</button>' : '') +
-            '</div></td>';
-          tbody.appendChild(tr);
-        });
-
-        if (!filtered.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;">No campaigns match your filter.</td></tr>';
-        }
-
-        tbody.querySelectorAll('[data-copy-link]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            const url = btn.dataset.copyLink;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(url).then(function () {
-                btn.textContent = 'Copied!';
-                setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
-              });
-            } else {
-              window.prompt('Copy campaign link:', url);
+        function renderKpiVisuals(enriched, sums) {
+          // 1. Vertical Cyan Activity Chart (top 10 campaigns by posters + clicks)
+          const chartEl = document.getElementById('kpi-activity-chart');
+          const vAxisEl = document.getElementById('kpi-vaxis');
+          if (chartEl) {
+            chartEl.querySelectorAll('.kpi-vbar-col').forEach(function (n) { n.remove(); });
+            const slice = enriched.slice(0, 10);
+            const maxVal = Math.max(1, Math.max.apply(null, slice.map(function (r) { return (Number(r.m.posters) || 0) + (Number(r.m.clicks) || 0); }).concat([1])));
+            if (vAxisEl) {
+              vAxisEl.innerHTML = '<span>' + maxVal + '</span><span>' + Math.round(maxVal / 2) + '</span><span>0</span>';
             }
-          });
-        });
-
-        tbody.querySelectorAll('[data-extend-id]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            const extId = btn.dataset.extendId;
-            const target = window.SocialWavesData.getCampaignById(extId);
-            if (!target) return;
-            const now = new Date();
-            const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const curSched = window.SocialWavesData.getCampaignScheduleInfo(target);
-            if (curSched.endDate && curSched.daysLeft > 0) {
-              const pts = curSched.endDate.split('-').map(Number);
-              baseDate.setFullYear(pts[0], pts[1] - 1, pts[2]);
-            }
-            const nextEnd = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 30);
-            const nextEndStr = nextEnd.getFullYear() + '-' + String(nextEnd.getMonth() + 1).padStart(2, '0') + '-' + String(nextEnd.getDate()).padStart(2, '0');
-            const updated = Object.assign({}, target, {
-              endDate: nextEndStr,
-              validityDays: (Number(target.validityDays) || 0) + 30,
-              _updatedAt: Date.now()
+            slice.forEach(function (r) {
+              const score = (Number(r.m.posters) || 0) + (Number(r.m.clicks) || 0);
+              const pct = Math.max(8, Math.round((score / maxVal) * 100));
+              const col = document.createElement('div');
+              col.className = 'kpi-vbar-col';
+              col.title = r.c.title + ' (' + score + ')';
+              col.innerHTML =
+                '<div class="kpi-vbar-fill" style="height:' + pct + '%;"></div>' +
+                '<span class="kpi-vbar-lbl">' + esc(r.c.id.slice(0, 6)) + '</span>';
+              chartEl.appendChild(col);
             });
-            window.SocialWavesData.saveCustomCampaign(updated);
-            const srv = window.SocialWavesData.getServerStatus();
-            if (srv.configured) {
-              window.SocialWavesData.saveCampaignToServer(updated).then(renderTable).catch(renderTable);
-            } else {
-              renderTable();
-            }
-          });
-        });
+          }
 
-        tbody.querySelectorAll('[data-del-id]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            const delId = btn.dataset.delId;
-            window.SocialWavesData.deleteCustomCampaign(delId);
-            const srv = typeof window.SocialWavesData.getServerStatus === 'function'
-              ? window.SocialWavesData.getServerStatus()
-              : { configured: false };
-            if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
-              window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
+          // 2. Horizontal Cyan Status Bars
+          const statusBarsEl = document.getElementById('kpi-status-bars');
+          if (statusBarsEl) {
+            const totalC = Math.max(1, enriched.length);
+            const buckets = [
+              { label: 'Active', count: sums.statusCounts.active },
+              { label: 'Expiring <=7d', count: sums.statusCounts.expiring },
+              { label: 'Unlimited', count: sums.statusCounts.unlimited },
+              { label: 'Expired', count: sums.statusCounts.expired }
+            ];
+            statusBarsEl.innerHTML = buckets.map(function (b) {
+              const w = Math.round((b.count / totalC) * 100);
+              return '<div class="kpi-hbar-item">' +
+                '<span class="kpi-hbar-label">' + esc(b.label) + '</span>' +
+                '<span class="kpi-hbar-count">' + b.count + '</span>' +
+                '<div class="kpi-hbar-track"><div class="kpi-hbar-fill" style="width:' + w + '%;"></div></div>' +
+              '</div>';
+            }).join('');
+          }
+
+          // 3. Campaigns nearing expiry table
+          const expiryEl = document.getElementById('kpi-expiry-list');
+          if (expiryEl) {
+            const urgent = enriched
+              .filter(function (r) { return r.sched.daysLeft !== Infinity && r.sched.daysLeft >= 0; })
+              .sort(function (a, b) { return a.sched.daysLeft - b.sched.daysLeft; })
+              .slice(0, 6);
+            if (!urgent.length) {
+              expiryEl.innerHTML = '<tr><td colspan="3" style="color:var(--kpi-muted);">No expiring deadlines</td></tr>';
+            } else {
+              expiryEl.innerHTML = urgent.map(function (r) {
+                const cls = r.sched.daysLeft <= 3 ? 'kpi-sla-time-danger' : 'kpi-sla-time-warn';
+                const txt = r.sched.daysLeft === 0 ? 'Today' : ('in ' + r.sched.daysLeft + 'd');
+                return '<tr><td title="' + esc(r.c.title) + '">' + esc(r.c.title) + '</td><td>' + esc(r.c.id) + '</td><td class="' + cls + '">' + txt + '</td></tr>';
+              }).join('');
             }
+          }
+
+          // 4. Bottom KPI callouts & Gauge
+          const expCountEl = document.getElementById('kpi-expiring-count');
+          const convEl = document.getElementById('kpi-conversion-pct');
+          const pubCountEl = document.getElementById('kpi-public-count');
+          const schedCountEl = document.getElementById('kpi-scheduled-count');
+          const expiredCountEl = document.getElementById('kpi-expired-count');
+
+          const convPct = sums.clicks > 0 ? Math.min(100, Math.round((sums.posters / sums.clicks) * 100)) : 0;
+          const compPct = sums.posters > 0 ? Math.min(100, Math.round((sums.downloads / sums.posters) * 100)) : (enriched.length ? 100 : 0);
+
+          if (expCountEl) expCountEl.textContent = String(sums.statusCounts.expiring);
+          if (convEl) convEl.textContent = convPct + '%';
+          if (pubCountEl) pubCountEl.textContent = String(sums.customCount);
+          if (schedCountEl) schedCountEl.textContent = String(sums.statusCounts.scheduled);
+          if (expiredCountEl) expiredCountEl.textContent = String(sums.statusCounts.expired);
+
+          const arcEl = document.getElementById('kpi-gauge-arc');
+          const needleEl = document.getElementById('kpi-gauge-needle');
+          const gaugeTextEl = document.getElementById('kpi-gauge-text');
+          if (arcEl) {
+            const totalLen = 245;
+            arcEl.setAttribute('stroke-dashoffset', String(Math.round(totalLen - (totalLen * (compPct / 100)))));
+          }
+          if (needleEl) {
+            const deg = -90 + (180 * (compPct / 100));
+            needleEl.setAttribute('transform', 'rotate(' + deg + ' 100 100)');
+          }
+          if (gaugeTextEl) gaugeTextEl.textContent = compPct + '%';
+
+          // 5. Top campaigns leaderboard
+          const topListEl = document.getElementById('kpi-top-list');
+          if (topListEl) {
+            const ranked = enriched.slice().sort(function (a, b) {
+              return (b.m.downloads + b.m.posters) - (a.m.downloads + a.m.posters);
+            }).slice(0, 6);
+            topListEl.innerHTML = ranked.map(function (r) {
+              const init = esc((r.c.title || 'SW').slice(0, 2).toUpperCase());
+              const score = (Number(r.m.downloads) || 0) + (Number(r.m.posters) || 0);
+              return '<div class="kpi-leader-row">' +
+                '<div class="kpi-leader-left"><span class="kpi-avatar">' + init + '</span><span class="kpi-leader-name">' + esc(r.c.title) + '</span></div>' +
+                '<span class="kpi-leader-val">' + score + '</span>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        function renderTable() {
+          const tbody = document.getElementById('reports-body');
+          const searchInput = document.getElementById('dash-search');
+          const statusFilter = document.getElementById('dash-filter-status');
+          const sourceFilter = document.getElementById('dash-filter-source');
+          const sortSelect = document.getElementById('dash-sort');
+
+          const q = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
+          const fStatus = statusFilter ? statusFilter.value : 'all';
+          const fSource = sourceFilter ? sourceFilter.value : 'all';
+          const fSort = sortSelect ? sortSelect.value : 'newest';
+
+          const allMetrics = typeof window.SocialWavesData.getAllMetrics === 'function'
+            ? window.SocialWavesData.getAllMetrics()
+            : {};
+          const allList = window.SocialWavesData.getAllCampaigns();
+
+          let sumClicks = 0, sumPosters = 0, sumDownloads = 0, activeCount = 0, customCount = 0;
+          const statusCounts = { active: 0, expiring: 0, expired: 0, scheduled: 0, unlimited: 0 };
+
+          const enriched = allList.map(function (c) {
+            const m = allMetrics[c.id] || { clicks: 0, posters: 0, downloads: 0 };
+            const sched = typeof window.SocialWavesData.getCampaignScheduleInfo === 'function'
+              ? window.SocialWavesData.getCampaignScheduleInfo(c)
+              : { status: 'unlimited', label: 'Unlimited', runLabel: 'Always Active', daysLeft: Infinity };
+            const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
+            if (isCustom) customCount += 1;
+            sumClicks += Number(m.clicks) || 0;
+            sumPosters += Number(m.posters) || 0;
+            sumDownloads += Number(m.downloads) || 0;
+            if (Object.prototype.hasOwnProperty.call(statusCounts, sched.status)) {
+              statusCounts[sched.status] += 1;
+            }
+            if (sched.status !== 'expired' && sched.status !== 'scheduled') activeCount += 1;
+            return { c: c, m: m, sched: sched, isCustom: isCustom };
+          });
+
+          const elTotalCamps = document.getElementById('stat-total-camps');
+          const elClicks = document.getElementById('stat-total-clicks');
+          const elPosters = document.getElementById('stat-total-posters');
+          const elDownloads = document.getElementById('stat-total-downloads');
+          if (elTotalCamps) elTotalCamps.textContent = activeCount + ' / ' + allList.length;
+          if (elClicks) elClicks.textContent = String(sumClicks);
+          if (elPosters) elPosters.textContent = String(sumPosters);
+          if (elDownloads) elDownloads.textContent = String(sumDownloads);
+
+          renderKpiVisuals(enriched, {
+            clicks: sumClicks,
+            posters: sumPosters,
+            downloads: sumDownloads,
+            customCount: customCount,
+            statusCounts: statusCounts
+          });
+
+          let filtered = enriched.filter(function (row) {
+            const c = row.c;
+            if (q && !(c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.badge || '').toLowerCase().includes(q))) {
+              return false;
+            }
+            if (fSource === 'custom' && !row.isCustom) return false;
+            if (fSource === 'builtin' && row.isCustom) return false;
+            if (fStatus === 'running') {
+              return row.sched.status === 'active' || row.sched.status === 'expiring' || row.sched.status === 'unlimited';
+            }
+            if (fStatus !== 'all' && row.sched.status !== fStatus) return false;
+            return true;
+          });
+
+          if (fSort === 'clicks') {
+            filtered.sort(function (a, b) { return b.m.clicks - a.m.clicks; });
+          } else if (fSort === 'posters') {
+            filtered.sort(function (a, b) { return b.m.posters - a.m.posters; });
+          } else if (fSort === 'downloads') {
+            filtered.sort(function (a, b) { return b.m.downloads - a.m.downloads; });
+          } else if (fSort === 'ending') {
+            filtered.sort(function (a, b) {
+              const da = a.sched.daysLeft === Infinity ? 999999 : a.sched.daysLeft;
+              const db = b.sched.daysLeft === Infinity ? 999999 : b.sched.daysLeft;
+              return da - db;
+            });
+          }
+
+          tbody.innerHTML = '';
+          filtered.forEach(function (row) {
+            const c = row.c;
+            const m = row.m;
+            const sched = row.sched;
+            const tr = document.createElement('tr');
+            const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
+            const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
+              ? window.SocialWavesData.getShortShareUrl(c)
+              : launchUrl;
+            const absUrl = new URL(shortRel, window.location.href).href;
+            const dateSpan = (sched.startDate || sched.endDate)
+              ? ('<div class="dash-subtext">' + (sched.startDate || 'Now') + (sched.endDate ? (' &rarr; ' + sched.endDate) : '') + '</div>')
+              : '';
+
+            tr.innerHTML =
+              '<td data-label="Campaign"><strong>' + esc(c.title) + '</strong><div><code>' + esc(c.id) + '</code> <span class="dash-subtext">' + (c.cropWidth + '&times;' + c.cropHeight) + '</span></div>' + dateSpan + '</td>' +
+              '<td data-label="Run Time"><span class="status-pill status-' + sched.status + '">' + esc(sched.label) + '</span><div class="dash-subtext">' + esc(sched.runLabel) + '</div></td>' +
+              '<td data-label="Clicks"><span class="dash-badge">' + m.clicks + '</span></td>' +
+              '<td data-label="Posters"><span class="dash-badge">' + m.posters + '</span></td>' +
+              '<td data-label="Downloads"><span class="dash-badge">' + m.downloads + '</span></td>' +
+              '<td data-label="Actions"><div class="dash-actions">' +
+                '<a class="dash-mini-btn" href="' + launchUrl + '">Open</a>' +
+                '<button type="button" class="dash-mini-btn" data-copy-link="' + esc(absUrl) + '">Copy</button>' +
+                (canWrite ? '<a class="dash-mini-btn" href="studio?edit=' + encodeURIComponent(c.id) + '">Edit</a>' : '') +
+                (canWrite && row.isCustom && sched.endDate ? '<button type="button" class="dash-mini-btn" data-extend-id="' + esc(c.id) + '">+30d</button>' : '') +
+                (canDelete && row.isCustom ? '<button type="button" class="dash-mini-btn danger" data-del-id="' + esc(c.id) + '">Delete</button>' : '') +
+              '</div></td>';
+            tbody.appendChild(tr);
+          });
+
+          if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--kpi-muted);">No campaigns match your filter.</td></tr>';
+          }
+
+          tbody.querySelectorAll('[data-copy-link]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const url = btn.dataset.copyLink;
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () {
+                  btn.textContent = 'Copied!';
+                  setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+                });
+              } else {
+                window.prompt('Copy campaign link:', url);
+              }
+            });
+          });
+
+          tbody.querySelectorAll('[data-extend-id]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const extId = btn.dataset.extendId;
+              const target = window.SocialWavesData.getCampaignById(extId);
+              if (!target) return;
+              const now = new Date();
+              const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const curSched = window.SocialWavesData.getCampaignScheduleInfo(target);
+              if (curSched.endDate && curSched.daysLeft > 0) {
+                const pts = curSched.endDate.split('-').map(Number);
+                baseDate.setFullYear(pts[0], pts[1] - 1, pts[2]);
+              }
+              const nextEnd = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 30);
+              const nextEndStr = nextEnd.getFullYear() + '-' + String(nextEnd.getMonth() + 1).padStart(2, '0') + '-' + String(nextEnd.getDate()).padStart(2, '0');
+              const updated = Object.assign({}, target, {
+                endDate: nextEndStr,
+                validityDays: (Number(target.validityDays) || 0) + 30,
+                _updatedAt: Date.now()
+              });
+              window.SocialWavesData.saveCustomCampaign(updated);
+              const srv = window.SocialWavesData.getServerStatus();
+              if (srv.configured) {
+                window.SocialWavesData.saveCampaignToServer(updated).then(renderTable).catch(renderTable);
+              } else {
+                renderTable();
+              }
+            });
+          });
+
+          tbody.querySelectorAll('[data-del-id]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const delId = btn.dataset.delId;
+              window.SocialWavesData.deleteCustomCampaign(delId);
+              const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+                ? window.SocialWavesData.getServerStatus()
+                : { configured: false };
+              if (srv.configured && typeof window.SocialWavesData.deleteCampaignOnServer === 'function') {
+                window.SocialWavesData.deleteCampaignOnServer(delId).catch(function () {});
+              }
+              renderTable();
+            });
+          });
+        }
+
+        const dashSearchEl = document.getElementById('dash-search');
+        const dashStatusEl = document.getElementById('dash-filter-status');
+        const dashSourceEl = document.getElementById('dash-filter-source');
+        const dashSortEl = document.getElementById('dash-sort');
+        const dashClearEl = document.getElementById('dash-clear-filters');
+        [dashSearchEl, dashStatusEl, dashSourceEl, dashSortEl].forEach(function (el) {
+          if (!el) return;
+          el.addEventListener('input', renderTable);
+          el.addEventListener('change', renderTable);
+        });
+        if (dashClearEl) {
+          dashClearEl.addEventListener('click', function () {
+            if (dashSearchEl) dashSearchEl.value = '';
+            if (dashStatusEl) dashStatusEl.value = 'all';
+            if (dashSourceEl) dashSourceEl.value = 'all';
+            if (dashSortEl) dashSortEl.value = 'newest';
             renderTable();
           });
-        });
-      }
+        }
 
-      const dashSearchEl = document.getElementById('dash-search');
-      const dashStatusEl = document.getElementById('dash-filter-status');
-      const dashSourceEl = document.getElementById('dash-filter-source');
-      const dashSortEl = document.getElementById('dash-sort');
-      const dashClearEl = document.getElementById('dash-clear-filters');
-      [dashSearchEl, dashStatusEl, dashSourceEl, dashSortEl].forEach(function (el) {
-        if (!el) return;
-        el.addEventListener('input', renderTable);
-        el.addEventListener('change', renderTable);
-      });
-      if (dashClearEl) {
-        dashClearEl.addEventListener('click', function () {
-          if (dashSearchEl) dashSearchEl.value = '';
-          if (dashStatusEl) dashStatusEl.value = 'all';
-          if (dashSourceEl) dashSourceEl.value = 'all';
-          if (dashSortEl) dashSortEl.value = 'newest';
+        document.getElementById('create-campaign-form').addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (!canWrite) return;
+          const title = document.getElementById('c-title').value.trim();
+          const subtitle = document.getElementById('c-subtitle').value.trim() || 'Create Personalised poster to support the campaign';
+          const id = document.getElementById('c-id').value.trim();
+          const color = document.getElementById('c-color').value;
+          const cw = parseInt(document.getElementById('c-w').value, 10) || 260;
+          const ch = parseInt(document.getElementById('c-h').value, 10) || 300;
+          const extra = document.getElementById('c-extra').value.trim();
+          const startDate = cStartEl ? cStartEl.value : '';
+          const validityDays = cValidityEl ? (parseInt(cValidityEl.value, 10) || 0) : 0;
+          const endDate = cEndEl ? cEndEl.value : '';
+
+          const ratio = cw / ch;
+          const slotW = 280;
+          const slotH = Math.round(slotW / ratio);
+
+          const fields = [{ name: 'name', label: 'Name', type: 'text', required: true }];
+          const textSlots = [
+            { field: 'name', x: 400, y: 835, font: '700 38px Montserrat, sans-serif', color: '#ffffff', align: 'center', maxWidth: 660 }
+          ];
+          if (extra) {
+            fields.push({ name: 'extra', label: extra, type: 'text', required: false });
+            textSlots.push({ field: 'extra', x: 400, y: 888, font: '600 24px Poppins, sans-serif', color: '#fef08a', align: 'center', maxWidth: 620 });
+          }
+
+          const newPayload = {
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            badge: 'Custom Campaign',
+            startDate: startDate,
+            endDate: endDate,
+            validityDays: validityDays,
+            _updatedAt: Date.now(),
+            frameId: String(Date.now()).slice(-4),
+            cropWidth: cw,
+            cropHeight: ch,
+            aspectRatio: ratio,
+            slot: { x: (800 - slotW) / 2, y: 245, w: slotW, h: Math.min(440, slotH), radius: 28 },
+            palette: { bg1: color, bg2: '#0ea5e9', accent: '#1acc8d', dark: '#0f172a' },
+            headerTag: title.toUpperCase(),
+            footerText: 'Created with SocialWaves Standalone',
+            fields: fields,
+            textSlots: textSlots
+          };
+          const saveRes = window.SocialWavesData.saveCustomCampaign(newPayload);
+          if (saveRes && saveRes.ok === false) {
+            document.getElementById('create-msg').innerHTML = '<span style="color:#f87171;">Save failed: ' + esc(saveRes.error || 'Storage full') + '</span>';
+            return;
+          }
+
+          const shareHref = window.SocialWavesData.getCampaignLaunchUrl(newPayload);
+          const msgEl = document.getElementById('create-msg');
+          msgEl.innerHTML = '<span style="color:#fbbf24;">Saved to this browser only!</span> <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;color:#22d3ee;">Open Share Link &rarr;</a>';
+          const srv = typeof window.SocialWavesData.getServerStatus === 'function'
+            ? window.SocialWavesData.getServerStatus()
+            : { available: false, configured: false };
+          if (srv.available && !srv.configured) {
+            msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#fbbf24;">Other users will NOT see it yet — start XAMPP MySQL and import <code>database/schema.sql</code>.</div>';
+          }
+          if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
+            msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to database...)</span>';
+            window.SocialWavesData.saveCampaignToServer(newPayload).then(function (res) {
+              const synced = res.campaign || newPayload;
+              window.SocialWavesData.saveCustomCampaign(synced);
+              const liveUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
+              msgEl.innerHTML = 'Live! Short Link: <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;color:#22d3ee;">' + esc(liveUrl) + '</a>';
+              renderTable();
+            }).catch(function (err) {
+              const s = document.getElementById('dash-gh-sync');
+              if (s) s.textContent = '(Server save failed: ' + err.message + ')';
+            });
+          }
+          e.target.reset();
+          setDefaultCreateDates();
           renderTable();
         });
-      }
 
-      document.getElementById('create-campaign-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-        const title = document.getElementById('c-title').value.trim();
-        const subtitle = document.getElementById('c-subtitle').value.trim() || 'Create Personalised poster to support the campaign';
-        const id = document.getElementById('c-id').value.trim();
-        const color = document.getElementById('c-color').value;
-        const cw = parseInt(document.getElementById('c-w').value, 10) || 260;
-        const ch = parseInt(document.getElementById('c-h').value, 10) || 300;
-        const extra = document.getElementById('c-extra').value.trim();
-        const startDate = cStartEl ? cStartEl.value : '';
-        const validityDays = cValidityEl ? (parseInt(cValidityEl.value, 10) || 0) : 0;
-        const endDate = cEndEl ? cEndEl.value : '';
-
-        const ratio = cw / ch;
-        const slotW = 280;
-        const slotH = Math.round(slotW / ratio);
-
-        const fields = [{ name: 'name', label: 'Name', type: 'text', required: true }];
-        const textSlots = [
-          { field: 'name', x: 400, y: 835, font: '700 38px Montserrat, sans-serif', color: '#ffffff', align: 'center', maxWidth: 660 }
-        ];
-        if (extra) {
-          fields.push({ name: 'extra', label: extra, type: 'text', required: false });
-          textSlots.push({ field: 'extra', x: 400, y: 888, font: '600 24px Poppins, sans-serif', color: '#fef08a', align: 'center', maxWidth: 620 });
+        if (typeof window.SocialWavesData.ready === 'function') {
+          window.SocialWavesData.ready().then(renderTable);
+        } else {
+          renderTable();
         }
-
-        const newPayload = {
-          id: id,
-          title: title,
-          subtitle: subtitle,
-          badge: 'Custom Campaign',
-          startDate: startDate,
-          endDate: endDate,
-          validityDays: validityDays,
-          _updatedAt: Date.now(),
-          frameId: String(Date.now()).slice(-4),
-          cropWidth: cw,
-          cropHeight: ch,
-          aspectRatio: ratio,
-          slot: { x: (800 - slotW) / 2, y: 245, w: slotW, h: Math.min(440, slotH), radius: 28 },
-          palette: { bg1: color, bg2: '#0ea5e9', accent: '#1acc8d', dark: '#0f172a' },
-          headerTag: title.toUpperCase(),
-          footerText: 'Created with SocialWaves Standalone',
-          fields: fields,
-          textSlots: textSlots
-        };
-        const saveRes = window.SocialWavesData.saveCustomCampaign(newPayload);
-        if (saveRes && saveRes.ok === false) {
-          document.getElementById('create-msg').innerHTML = '<span style="color:#dc2626;">Save failed: ' + (saveRes.error || 'Storage full') + '</span>';
-          return;
-        }
-
-        const shareHref = window.SocialWavesData.getCampaignLaunchUrl(newPayload);
-        const msgEl = document.getElementById('create-msg');
-        msgEl.innerHTML = '<span style="color:#b45309;">Saved to this browser only!</span> <a href="' + shareHref + '" style="font-weight:700;text-decoration:underline;">Open Share Link &rarr;</a>';
-        const srv = typeof window.SocialWavesData.getServerStatus === 'function'
-          ? window.SocialWavesData.getServerStatus()
-          : { available: false, configured: false };
-        if (srv.available && !srv.configured) {
-          msgEl.innerHTML += '<div style="margin-top:4px;font-size:12px;color:#b45309;">Other users will NOT see it yet — start XAMPP MySQL and import <code>database/schema.sql</code>.</div>';
-        }
-        if (srv.configured && typeof window.SocialWavesData.saveCampaignToServer === 'function') {
-          msgEl.innerHTML += ' <span id="dash-gh-sync">(Saving to database...)</span>';
-          window.SocialWavesData.saveCampaignToServer(newPayload).then(function (res) {
-            const synced = res.campaign || newPayload;
-            window.SocialWavesData.saveCustomCampaign(synced);
-            const liveUrl = new URL(encodeURIComponent(synced.id), window.location.href).href;
-            msgEl.innerHTML = 'Live! Short Link: <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + liveUrl + '</a>';
-            renderTable();
-          }).catch(function (err) {
-            const s = document.getElementById('dash-gh-sync');
-            if (s) s.textContent = '(Server save failed: ' + err.message + ')';
-          });
-        }
-        e.target.reset();
-        setDefaultCreateDates();
-        renderTable();
-      });
-
-      if (typeof window.SocialWavesData.ready === 'function') {
-        window.SocialWavesData.ready().then(renderTable);
-      } else {
-        renderTable();
-      }
       }
     })();
   </script>

@@ -58,6 +58,34 @@ function sw_current_admin(): ?string
     return null;
 }
 
+function sw_valid_role(string $role): bool
+{
+    return in_array($role, ['super_admin', 'manager', 'editor', 'viewer'], true);
+}
+
+function sw_current_admin_record(PDO $pdo): ?array
+{
+    $user = sw_current_admin();
+    if ($user === null) {
+        return null;
+    }
+    $stmt = $pdo->prepare('SELECT `id`, `username`, `role`, `is_active` FROM `admins` WHERE `username` = ? LIMIT 1');
+    $stmt->execute([$user]);
+    $row = $stmt->fetch();
+    if (!$row || (int)$row['is_active'] !== 1) {
+        $_SESSION = [];
+        return null;
+    }
+    $role = sw_valid_role((string)($row['role'] ?? '')) ? (string)$row['role'] : 'editor';
+    $_SESSION['sw_admin_role'] = $role;
+    return [
+        'id' => (int)$row['id'],
+        'username' => (string)$row['username'],
+        'role' => $role,
+        'is_active' => (int)$row['is_active'],
+    ];
+}
+
 function sw_require_admin(): string
 {
     $user = sw_current_admin();
@@ -65,6 +93,18 @@ function sw_require_admin(): string
         sw_json(['ok' => false, 'error' => 'Admin login required.'], 401);
     }
     return $user;
+}
+
+function sw_require_role(PDO $pdo, array $allowedRoles): array
+{
+    $rec = sw_current_admin_record($pdo);
+    if ($rec === null) {
+        sw_json(['ok' => false, 'error' => 'Admin login required.'], 401);
+    }
+    if (!in_array($rec['role'], $allowedRoles, true)) {
+        sw_json(['ok' => false, 'error' => 'Insufficient permissions for role: ' . $rec['role']], 403);
+    }
+    return $rec;
 }
 
 function sw_valid_campaign_id(string $id): bool
@@ -107,11 +147,21 @@ function sw_db(): PDO
           `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
           `username` VARCHAR(64) NOT NULL,
           `password_hash` VARCHAR(255) NOT NULL,
+          `role` VARCHAR(32) NOT NULL DEFAULT 'editor',
+          `is_active` TINYINT(1) NOT NULL DEFAULT 1,
           `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
           UNIQUE KEY `uniq_admin_username` (`username`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Auto-migrate role/status columns on existing admins tables
+    $adminRoleCol = $pdo->query("SHOW COLUMNS FROM `admins` LIKE 'role'")->fetch();
+    if (!$adminRoleCol) {
+        $pdo->exec("ALTER TABLE `admins` ADD COLUMN `role` VARCHAR(32) NOT NULL DEFAULT 'editor' AFTER `password_hash`");
+        $pdo->exec("ALTER TABLE `admins` ADD COLUMN `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `role`");
+        $pdo->exec("UPDATE `admins` SET `role` = 'super_admin' WHERE `username` = 'admin' OR `id` = 1");
+    }
 
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `campaigns` (
@@ -175,7 +225,7 @@ function sw_db(): PDO
 
     $count = (int)$pdo->query("SELECT COUNT(*) FROM `admins`")->fetchColumn();
     if ($count === 0) {
-        $stmt = $pdo->prepare("INSERT INTO `admins` (`username`, `password_hash`) VALUES (?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO `admins` (`username`, `password_hash`, `role`, `is_active`) VALUES (?, ?, 'super_admin', 1)");
         $stmt->execute([
             $cfg['default_admin_user'],
             password_hash($cfg['default_admin_pass'], PASSWORD_DEFAULT)

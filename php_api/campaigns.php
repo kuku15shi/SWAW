@@ -20,12 +20,12 @@ try {
 
 function sw_row_to_campaign(array $row): array
 {
-    $cw = max(40, (int)$row['crop_width']);
-    $ch = max(40, (int)$row['crop_height']);
-    $slot = json_decode((string)$row['slot_json'], true);
-    $palette = json_decode((string)$row['palette_json'], true);
-    $fields = json_decode((string)$row['fields_json'], true);
-    $textSlots = json_decode((string)$row['text_slots_json'], true);
+    $cw = max(40, (int) $row['crop_width']);
+    $ch = max(40, (int) $row['crop_height']);
+    $slot = json_decode((string) $row['slot_json'], true);
+    $palette = json_decode((string) $row['palette_json'], true);
+    $fields = json_decode((string) $row['fields_json'], true);
+    $textSlots = json_decode((string) $row['text_slots_json'], true);
 
     return [
         'id' => $row['id'],
@@ -33,8 +33,8 @@ function sw_row_to_campaign(array $row): array
         'subtitle' => $row['subtitle'],
         'badge' => $row['badge'],
         'frameId' => $row['frame_id'] ?: ('custom-' . $row['id']),
-        'frameWidth' => max(100, (int)$row['frame_width']),
-        'frameHeight' => max(100, (int)$row['frame_height']),
+        'frameWidth' => max(100, (int) $row['frame_width']),
+        'frameHeight' => max(100, (int) $row['frame_height']),
         'cropWidth' => $cw,
         'cropHeight' => $ch,
         'aspectRatio' => $cw / $ch,
@@ -45,11 +45,11 @@ function sw_row_to_campaign(array $row): array
         'customFrameUrl' => $row['custom_frame_url'],
         'fields' => is_array($fields) ? $fields : [],
         'textSlots' => is_array($textSlots) ? $textSlots : [],
-        'startDate' => (string)($row['start_date'] ?? ''),
-        'endDate' => (string)($row['end_date'] ?? ''),
-        'validityDays' => (int)($row['validity_days'] ?? 0),
-        'createdAt' => !empty($row['created_at']) ? strtotime((string)$row['created_at']) * 1000 : (int)$row['updated_at'],
-        '_updatedAt' => (int)$row['updated_at'],
+        'startDate' => (string) ($row['start_date'] ?? ''),
+        'endDate' => (string) ($row['end_date'] ?? ''),
+        'validityDays' => (int) ($row['validity_days'] ?? 0),
+        'createdAt' => !empty($row['created_at']) ? strtotime((string) $row['created_at']) * 1000 : (int) $row['updated_at'],
+        '_updatedAt' => (int) $row['updated_at'],
     ];
 }
 
@@ -62,7 +62,7 @@ if ($method === 'GET') {
     foreach ($statRows as $sr) {
         $stats[$sr['campaign_id']] = [
             'clicks' => 0,
-            'posters' => (int)$sr['cnt'],
+            'posters' => (int) $sr['cnt'],
             'downloads' => 0,
         ];
     }
@@ -70,11 +70,11 @@ if ($method === 'GET') {
     $metricRows = $pdo->query('SELECT `campaign_id`, `clicks`, `posters`, `downloads` FROM `campaign_metrics`')->fetchAll();
     foreach ($metricRows as $mr) {
         $cid = $mr['campaign_id'];
-        $prevPosters = isset($stats[$cid]) ? (int)$stats[$cid]['posters'] : 0;
+        $prevPosters = isset($stats[$cid]) ? (int) $stats[$cid]['posters'] : 0;
         $stats[$cid] = [
-            'clicks' => (int)$mr['clicks'],
-            'posters' => max($prevPosters, (int)$mr['posters']),
-            'downloads' => (int)$mr['downloads'],
+            'clicks' => (int) $mr['clicks'],
+            'posters' => max($prevPosters, (int) $mr['posters']),
+            'downloads' => (int) $mr['downloads'],
         ];
     }
 
@@ -88,13 +88,17 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $adminUser = sw_current_admin();
+    $adminRec = sw_current_admin_record($pdo);
+    $adminUser = $adminRec ? $adminRec['username'] : null;
+    if ($adminRec !== null && !in_array($adminRec['role'], ['super_admin', 'manager', 'editor'], true)) {
+        sw_json(['ok' => false, 'error' => 'Your role (' . $adminRec['role'] . ') has read-only permissions.'], 403);
+    }
     $creator = $adminUser ?? 'public';
     $body = sw_read_json_body();
     $c = isset($body['campaign']) && is_array($body['campaign']) ? $body['campaign'] : $body;
 
-    $id = trim((string)($c['id'] ?? ''));
-    $title = trim((string)($c['title'] ?? ''));
+    $id = trim((string) ($c['id'] ?? ''));
+    $title = trim((string) ($c['title'] ?? ''));
     if ($id === '' || $title === '') {
         sw_json(['ok' => false, 'error' => 'Campaign id and title are required.'], 400);
     }
@@ -118,8 +122,8 @@ if ($method === 'POST') {
     }
 
     $cfg = sw_config();
-    $frameUrl = trim((string)($c['customFrameUrl'] ?? ''));
-    $dataUrl = (string)($c['customFrameDataUrl'] ?? '');
+    $frameUrl = trim((string) ($c['customFrameUrl'] ?? ''));
+    $dataUrl = (string) ($c['customFrameDataUrl'] ?? '');
 
     if ($dataUrl !== '' && preg_match('/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/', $dataUrl, $m)) {
         $ext = strtolower(str_replace(['jpeg', '+xml'], ['jpg', ''], $m[1]));
@@ -152,10 +156,10 @@ if ($method === 'POST') {
         $frameUrl = 'frames/' . $id . '.' . $ext . '?v=' . time();
     }
 
-    $updatedAt = (int)round(microtime(true) * 1000);
-    $startDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($c['startDate'] ?? '')) ? (string)$c['startDate'] : '';
-    $endDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($c['endDate'] ?? '')) ? (string)$c['endDate'] : '';
-    $validityDays = max(0, min(3650, (int)($c['validityDays'] ?? 0)));
+    $updatedAt = (int) round(microtime(true) * 1000);
+    $startDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($c['startDate'] ?? '')) ? (string) $c['startDate'] : '';
+    $endDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($c['endDate'] ?? '')) ? (string) $c['endDate'] : '';
+    $validityDays = max(0, min(3650, (int) ($c['validityDays'] ?? 0)));
 
     $stmt = $pdo->prepare("
         INSERT INTO `campaigns` (
@@ -192,17 +196,17 @@ if ($method === 'POST') {
     $stmt->execute([
         $id,
         substr($title, 0, 191),
-        substr((string)($c['subtitle'] ?? ''), 0, 255),
-        substr((string)($c['badge'] ?? 'Custom Campaign'), 0, 100),
-        substr((string)($c['frameId'] ?? ('custom-' . $id)), 0, 64),
-        max(100, (int)($c['frameWidth'] ?? 800)),
-        max(100, (int)($c['frameHeight'] ?? 1000)),
-        max(40, (int)($c['cropWidth'] ?? 260)),
-        max(40, (int)($c['cropHeight'] ?? 300)),
+        substr((string) ($c['subtitle'] ?? ''), 0, 255),
+        substr((string) ($c['badge'] ?? 'Custom Campaign'), 0, 100),
+        substr((string) ($c['frameId'] ?? ('custom-' . $id)), 0, 64),
+        max(100, (int) ($c['frameWidth'] ?? 800)),
+        max(100, (int) ($c['frameHeight'] ?? 1000)),
+        max(40, (int) ($c['cropWidth'] ?? 260)),
+        max(40, (int) ($c['cropHeight'] ?? 300)),
         json_encode($c['slot'] ?? new stdClass(), JSON_UNESCAPED_SLASHES),
         json_encode($c['palette'] ?? new stdClass(), JSON_UNESCAPED_SLASHES),
-        substr((string)($c['headerTag'] ?? ''), 0, 191),
-        substr((string)($c['footerText'] ?? ''), 0, 255),
+        substr((string) ($c['headerTag'] ?? ''), 0, 191),
+        substr((string) ($c['footerText'] ?? ''), 0, 255),
         substr($frameUrl, 0, 512),
         json_encode($c['fields'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         json_encode($c['textSlots'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -226,8 +230,8 @@ if ($method === 'POST') {
 }
 
 if ($method === 'DELETE') {
-    sw_require_admin();
-    $id = trim((string)($_GET['id'] ?? ''));
+    sw_require_role($pdo, ['super_admin', 'manager']);
+    $id = trim((string) ($_GET['id'] ?? ''));
     if ($id === '' || !sw_valid_campaign_id($id)) {
         sw_json(['ok' => false, 'error' => 'Invalid campaign id.'], 400);
     }

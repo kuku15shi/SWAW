@@ -19,11 +19,12 @@
     return '';
   }
 
-  function setLocalSession(username) {
+  function setLocalSession(username, role) {
     try {
       sessionStorage.setItem(SESSION_KEY, '1');
       sessionStorage.setItem(SESSION_META_KEY, JSON.stringify({
         username: username || DEFAULT_USER,
+        role: role || 'super_admin',
         ts: Date.now()
       }));
     } catch (e) {
@@ -64,7 +65,7 @@
         const data = await resp.json();
         if (data && data.ok) {
           if (data.authenticated) {
-            setLocalSession(data.username);
+            setLocalSession(data.username, data.role);
           } else {
             clearLocalSession();
           }
@@ -73,6 +74,7 @@
             engine: data.engine || null,
             authenticated: Boolean(data.authenticated),
             username: data.username || null,
+            role: data.role || 'super_admin',
             usingDefaultPassword: Boolean(data.usingDefaultPassword)
           };
         }
@@ -86,6 +88,7 @@
       serverBacked: false,
       authenticated: localOk,
       username: localOk ? DEFAULT_USER : null,
+      role: localOk ? 'super_admin' : null,
       usingDefaultPassword: true
     };
   }
@@ -107,17 +110,18 @@
         if (!resp.ok || !data || !data.authenticated) {
           throw new Error((data && data.error) || 'Invalid username or password.');
         }
-        setLocalSession(data.username || u);
+        setLocalSession(data.username || u, data.role || 'super_admin');
         return {
           ok: true,
           serverBacked: true,
           engine: data.engine || null,
           username: data.username || u,
+          role: data.role || 'super_admin',
           usingDefaultPassword: Boolean(data.usingDefaultPassword)
         };
       }
     } catch (err) {
-      if (err && err.message && /invalid|attempts|json|denied/i.test(err.message)) {
+      if (err && err.message && /invalid|attempts|json|denied|inactive/i.test(err.message)) {
         throw err;
       }
       // non-API static environment fallback
@@ -128,8 +132,8 @@
     if (!matchLocal) {
       throw new Error('Invalid username or password.');
     }
-    setLocalSession(u);
-    return { ok: true, serverBacked: false, username: u, usingDefaultPassword: true };
+    setLocalSession(u, 'super_admin');
+    return { ok: true, serverBacked: false, username: u, role: 'super_admin', usingDefaultPassword: true };
   }
 
   async function logout() {
@@ -172,11 +176,74 @@
     return data;
   }
 
+  async function listUsers() {
+    const resp = await fetch('api/auth?action=users&t=' + Date.now(), {
+      cache: 'no-store',
+      credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Failed to load admin users.');
+    }
+    return data;
+  }
+
+  async function createUser(username, password, role) {
+    const resp = await fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        action: 'create_user',
+        username: String(username || '').trim(),
+        password: String(password || ''),
+        role: String(role || 'editor')
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Failed to create admin user.');
+    }
+    return data;
+  }
+
+  async function updateUser(userId, patch) {
+    const resp = await fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(Object.assign({ action: 'update_user', userId: Number(userId) }, patch || {}))
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Failed to update admin user.');
+    }
+    return data;
+  }
+
+  async function deleteUser(userId) {
+    const resp = await fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ action: 'delete_user', userId: Number(userId) })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Failed to delete admin user.');
+    }
+    return data;
+  }
+
   global.SocialWavesAdminAuth = {
     checkSession: checkSession,
     login: login,
     logout: logout,
     changePassword: changePassword,
+    listUsers: listUsers,
+    createUser: createUser,
+    updateUser: updateUser,
+    deleteUser: deleteUser,
     requireAdmin: requireAdmin
   };
 })(window);
