@@ -1015,7 +1015,10 @@
       els.savedList.innerHTML = '';
       list.forEach(function (c) {
         const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
-        const absUrl = new URL(launchUrl, window.location.href).href;
+        const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
+          ? window.SocialWavesData.getShortShareUrl(c)
+          : launchUrl;
+        const absUrl = new URL(shortRel, window.location.href).href;
         const row = document.createElement('div');
         row.className = 'saved-item-row';
         row.innerHTML =
@@ -1175,17 +1178,20 @@
           els.publishBtn.disabled = false;
           const synced = res.campaign;
           window.SocialWavesData.saveCustomCampaign(synced);
+          const curAll = window.SocialWavesData.getAllCampaigns().filter(function (c) { return c.id !== synced.id; });
+          curAll.unshift(synced);
+          window.SocialWavesData.setRemoteCampaigns(curAll);
           const launchUrl = 'campaign?id=' + encodeURIComponent(synced.id);
-          const liveUrl = res.pagesBase + launchUrl;
+          const shortUrl = res.pagesBase + encodeURIComponent(synced.id);
 
           els.publishStatus.innerHTML =
-            '<div style="color:#047857;font-weight:700;">Live on GitHub! Image &amp; campaign uploaded automatically.</div>' +
-            '<div style="margin-top:6px;"><a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">Open Live Campaign (' + window.escapeHtml(synced.id) + ') &rarr;</a></div>' +
+            '<div style="color:#047857;font-weight:700;">Live on GitHub! Short URL ready.</div>' +
+            '<div style="margin-top:6px;"><a href="' + shortUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + window.escapeHtml(shortUrl) + '</a></div>' +
             '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">' +
-            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Hosted Share Link</button>' +
+            '<button type="button" class="ctrl-mini-btn" id="copy-hosted-link-btn">Copy Short Link</button>' +
             '<button type="button" class="ctrl-mini-btn" id="copy-campaign-json-btn">Copy JSON for GitHub</button>' +
             '</div>';
-          wirePublishActionButtons(liveUrl, synced);
+          wirePublishActionButtons(shortUrl, synced);
           renderSavedCustomList();
         }).catch(function (err) {
           els.publishBtn.disabled = false;

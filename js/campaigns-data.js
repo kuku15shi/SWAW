@@ -385,38 +385,75 @@
     }
   }
 
+  function isSyncedRemotely(campaign) {
+    if (!campaign || !campaign.id) return false;
+    if (DEFAULT_CAMPAIGNS.some(function (d) { return d.id === campaign.id; }) && !campaign._updatedAt) {
+      return true;
+    }
+    const remote = REMOTE_CAMPAIGNS.find(function (r) { return r && r.id === campaign.id; });
+    if (!remote) return false;
+    return (Number(remote._updatedAt) || 0) >= (Number(campaign._updatedAt) || 0);
+  }
+
   function encodeCampaignToken(campaign, options) {
     if (!campaign || !campaign.id) return '';
     const opts = options || {};
     const maxDataUrlLen = opts.maxDataUrlLen || 48000;
     const compact = {
-      id: campaign.id,
-      title: campaign.title,
-      subtitle: campaign.subtitle || '',
-      badge: campaign.badge || 'Custom Campaign',
-      frameId: campaign.frameId || ('custom-' + campaign.id),
-      frameWidth: campaign.frameWidth || 800,
-      frameHeight: campaign.frameHeight || 1000,
-      cropWidth: campaign.cropWidth || 260,
-      cropHeight: campaign.cropHeight || 300,
-      aspectRatio: campaign.aspectRatio || ((campaign.cropWidth || 260) / (campaign.cropHeight || 300)),
-      slot: campaign.slot,
-      palette: campaign.palette,
-      headerTag: campaign.headerTag || '',
-      footerText: campaign.footerText || '',
-      fields: campaign.fields || [],
-      textSlots: campaign.textSlots || []
+      v: 2,
+      i: campaign.id,
+      t: campaign.title
     };
-    if (campaign.customFrameUrl) {
-      compact.customFrameUrl = campaign.customFrameUrl;
+    if (campaign.subtitle) compact.s = campaign.subtitle;
+    if (campaign.badge && campaign.badge !== 'Custom Campaign') compact.b = campaign.badge;
+    if (campaign.frameWidth && campaign.frameWidth !== 800) compact.w = campaign.frameWidth;
+    if (campaign.frameHeight && campaign.frameHeight !== 1000) compact.h = campaign.frameHeight;
+    if (campaign.cropWidth && campaign.cropWidth !== 260) compact.cw = campaign.cropWidth;
+    if (campaign.cropHeight && campaign.cropHeight !== 300) compact.ch = campaign.cropHeight;
+    if (campaign.slot) {
+      const sl = campaign.slot;
+      compact.sl = [sl.x, sl.y, sl.w, sl.h, sl.radius || 0, sl.rotation || 0, sl.layer === 'above' ? 1 : 0];
     }
-    if (campaign.customFrameFallbackUrl) {
-      compact.customFrameFallbackUrl = campaign.customFrameFallbackUrl;
+    if (campaign.palette) {
+      const p = campaign.palette;
+      compact.pl = [p.bg1, p.bg2, p.accent, p.dark];
     }
+    if (campaign.headerTag) compact.ht = campaign.headerTag;
+    if (campaign.footerText) compact.ft = campaign.footerText;
+    if (campaign.fields && campaign.fields.length) {
+      compact.f = campaign.fields.map(function (f) {
+        const row = [f.name, f.label, f.type === 'select' ? 's' : 't', f.required ? 1 : 0];
+        if (f.type === 'select' && f.options) row.push(f.options);
+        return row;
+      });
+    }
+    if (campaign.textSlots && campaign.textSlots.length) {
+      compact.ts = campaign.textSlots.map(function (ts) {
+        const obj = { f: ts.field, x: ts.x, y: ts.y };
+        if (ts.staticValue) obj.sv = ts.staticValue;
+        if (ts.prefix) obj.px = ts.prefix;
+        if (ts.fontSize && ts.fontSize !== 36) obj.fs = ts.fontSize;
+        if (ts.fontFamily && ts.fontFamily !== 'Montserrat, sans-serif') obj.ff = ts.fontFamily;
+        if (ts.fontWeight && ts.fontWeight !== '700') obj.fw = ts.fontWeight;
+        if (ts.textTransform && ts.textTransform !== 'none') obj.tt = ts.textTransform;
+        if (ts.color && ts.color !== '#ffffff') obj.c = ts.color;
+        if (ts.align && ts.align !== 'center') obj.a = ts.align;
+        if (ts.maxWidth && ts.maxWidth !== 680) obj.mw = ts.maxWidth;
+        if (ts.rotation) obj.r = ts.rotation;
+        if (ts.shadow === false) obj.sh = 0;
+        if (ts.bgEnabled) {
+          obj.bg = 1;
+          obj.bgc = ts.bgColor || '#047857';
+        }
+        return obj;
+      });
+    }
+    if (campaign.customFrameUrl) compact.u = campaign.customFrameUrl;
+    if (campaign.customFrameFallbackUrl) compact.fu = campaign.customFrameFallbackUrl;
     if (campaign.customFrameDataUrl && campaign.customFrameDataUrl.length <= maxDataUrlLen) {
-      compact.customFrameDataUrl = campaign.customFrameDataUrl;
+      compact.d = campaign.customFrameDataUrl;
     } else if (campaign.shareFrameDataUrl && campaign.shareFrameDataUrl.length <= maxDataUrlLen) {
-      compact.customFrameDataUrl = campaign.shareFrameDataUrl;
+      compact.d = campaign.shareFrameDataUrl;
     }
     return encodeBase64Url(JSON.stringify(compact));
   }
@@ -426,9 +463,62 @@
     try {
       const jsonStr = decodeBase64Url(String(token).trim());
       if (!jsonStr) return null;
-      const parsed = JSON.parse(jsonStr);
-      if (!parsed || typeof parsed !== 'object' || !parsed.id || !parsed.title) return null;
-      return parsed;
+      const p = JSON.parse(jsonStr);
+      if (!p || typeof p !== 'object') return null;
+
+      if (p.v === 2 && p.i && p.t) {
+        const cw = Number(p.cw) || 260;
+        const ch = Number(p.ch) || 300;
+        const sl = Array.isArray(p.sl) ? p.sl : [260, 245, 280, 336, 28, 0, 0];
+        const pl = Array.isArray(p.pl) ? p.pl : ['#047857', '#10b981', '#d1fae5', '#17211f'];
+        return {
+          id: p.i,
+          title: p.t,
+          subtitle: p.s || '',
+          badge: p.b || 'Custom Campaign',
+          frameId: 'custom-' + p.i,
+          frameWidth: Number(p.w) || 800,
+          frameHeight: Number(p.h) || 1000,
+          cropWidth: cw,
+          cropHeight: ch,
+          aspectRatio: cw / ch,
+          slot: { x: sl[0], y: sl[1], w: sl[2], h: sl[3], radius: sl[4] || 0, rotation: sl[5] || 0, layer: sl[6] ? 'above' : 'behind' },
+          palette: { bg1: pl[0], bg2: pl[1], accent: pl[2], dark: pl[3] },
+          headerTag: p.ht || '',
+          footerText: p.ft || '',
+          fields: (p.f || []).map(function (row) {
+            const fObj = { name: row[0], label: row[1], type: row[2] === 's' ? 'select' : 'text', required: Boolean(row[3]) };
+            if (fObj.type === 'select' && Array.isArray(row[4])) fObj.options = row[4];
+            return fObj;
+          }),
+          textSlots: (p.ts || []).map(function (ts) {
+            return {
+              field: ts.f,
+              staticValue: ts.sv || null,
+              prefix: ts.px || '',
+              x: ts.x,
+              y: ts.y,
+              fontSize: ts.fs || 36,
+              fontFamily: ts.ff || 'Montserrat, sans-serif',
+              fontWeight: ts.fw || '700',
+              textTransform: ts.tt || 'none',
+              color: ts.c || '#ffffff',
+              align: ts.a || 'center',
+              maxWidth: ts.mw || 680,
+              rotation: ts.r || 0,
+              shadow: ts.sh !== 0,
+              bgEnabled: Boolean(ts.bg),
+              bgColor: ts.bgc || '#047857'
+            };
+          }),
+          customFrameUrl: p.u || '',
+          customFrameFallbackUrl: p.fu || '',
+          customFrameDataUrl: p.d || null
+        };
+      }
+
+      if (!p.id || !p.title) return null;
+      return p;
     } catch (e) {
       return null;
     }
@@ -452,7 +542,7 @@
   function getCampaignLaunchUrl(campaign) {
     if (!campaign || !campaign.id) return 'campaign';
     const base = 'campaign?id=' + encodeURIComponent(campaign.id);
-    if (!isCustomCampaign(campaign.id) && !campaign._forceShareToken) {
+    if ((isSyncedRemotely(campaign) || !isCustomCampaign(campaign.id)) && !campaign._forceShareToken) {
       return base;
     }
     const token = encodeCampaignToken(campaign);
@@ -460,6 +550,14 @@
       return base;
     }
     return base + '#c=' + token;
+  }
+
+  function getShortShareUrl(campaign) {
+    if (!campaign || !campaign.id) return './';
+    if ((isSyncedRemotely(campaign) || !isCustomCampaign(campaign.id)) && !campaign._forceShareToken) {
+      return encodeURIComponent(campaign.id);
+    }
+    return getCampaignLaunchUrl(campaign);
   }
 
   function getCampaignById(id) {
@@ -720,6 +818,8 @@
     decodeCampaignToken: decodeCampaignToken,
     resolveCampaignFromLocation: resolveCampaignFromLocation,
     getCampaignLaunchUrl: getCampaignLaunchUrl,
+    getShortShareUrl: getShortShareUrl,
+    isSyncedRemotely: isSyncedRemotely,
     saveCustomCampaign: saveCustomCampaign,
     deleteCustomCampaign: deleteCustomCampaign,
     isCustomCampaign: isCustomCampaign,

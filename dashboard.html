@@ -218,7 +218,10 @@
           const count = stats[c.id] || 0;
           const isCustom = window.SocialWavesData.isCustomCampaign(c.id);
           const launchUrl = window.SocialWavesData.getCampaignLaunchUrl(c);
-          const absUrl = new URL(launchUrl, window.location.href).href;
+          const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
+            ? window.SocialWavesData.getShortShareUrl(c)
+            : launchUrl;
+          const absUrl = new URL(shortRel, window.location.href).href;
           const escTitle = c.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           const escId = c.id.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           const escAbs = absUrl.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -322,8 +325,14 @@
         if (window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured()) {
           msgEl.innerHTML += ' <span id="dash-gh-sync">(Uploading to GitHub...)</span>';
           window.SocialWavesGitHub.publishCampaignToGitHub(newPayload).then(function (res) {
-            const liveUrl = res.pagesBase + 'campaign?id=' + encodeURIComponent(res.campaign.id);
-            msgEl.innerHTML = 'Live on GitHub! <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">Open Hosted Link &rarr;</a>';
+            const synced = res.campaign;
+            window.SocialWavesData.saveCustomCampaign(synced);
+            const curAll = window.SocialWavesData.getAllCampaigns().filter(function (c) { return c.id !== synced.id; });
+            curAll.unshift(synced);
+            window.SocialWavesData.setRemoteCampaigns(curAll);
+            const liveUrl = res.pagesBase + encodeURIComponent(synced.id);
+            msgEl.innerHTML = 'Live! Short Link: <a href="' + liveUrl + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:underline;">' + liveUrl + '</a>';
+            renderTable();
           }).catch(function (err) {
             const s = document.getElementById('dash-gh-sync');
             if (s) s.textContent = '(GitHub upload failed: ' + err.message + ')';

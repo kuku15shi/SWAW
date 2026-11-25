@@ -696,7 +696,10 @@
             dwBtn.href = finalDataUrl;
             dwBtn.download = safeName + '-' + campaign.id + '.png';
 
-            const shareUrl = window.location.href;
+            const shortRel = typeof window.SocialWavesData.getShortShareUrl === 'function'
+              ? window.SocialWavesData.getShortShareUrl(campaign)
+              : window.SocialWavesData.getCampaignLaunchUrl(campaign);
+            const shareUrl = new URL(shortRel, window.location.href).href;
             fbShare.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
             wtShare.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(campaign.title + ' - Create your poster: ' + shareUrl);
 
