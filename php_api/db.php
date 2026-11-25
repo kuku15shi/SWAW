@@ -1,0 +1,164 @@
+<?php
+declare(strict_types=1);
+
+function sw_config(): array
+{
+    static $cfg = null;
+    if ($cfg === null) {
+        $cfg = require __DIR__ . '/config.php';
+    }
+    return $cfg;
+}
+
+function sw_json($data, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function sw_read_json_body(): array
+{
+    $raw = file_get_contents('php://input');
+    if ($raw === false || trim($raw) === '') {
+        return [];
+    }
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function sw_start_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && stripos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false);
+
+    ini_set('session.use_strict_mode', '1');
+    session_name('sw_admin_php_session');
+    session_set_cookie_params([
+        'lifetime' => 60 * 60 * 8,
+        'path' => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+        'secure' => $isHttps,
+    ]);
+    session_start();
+}
+
+function sw_current_admin(): ?string
+{
+    sw_start_session();
+    if (!empty($_SESSION['sw_admin_user']) && is_string($_SESSION['sw_admin_user'])) {
+        return $_SESSION['sw_admin_user'];
+    }
+    return null;
+}
+
+function sw_require_admin(): string
+{
+    $user = sw_current_admin();
+    if ($user === null) {
+        sw_json(['ok' => false, 'error' => 'Admin login required.'], 401);
+    }
+    return $user;
+}
+
+function sw_valid_campaign_id(string $id): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_-]{2,40}$/', $id)) {
+        return false;
+    }
+    $reserved = [
+        'api', 'php_api', 'database', 'all-campaigns', 'campaign', 'studio',
+        'login', 'dashboard', 'terms', 'policy', 'css', 'js', 'frames', 'assets', '404', 'index'
+    ];
+    return !in_array(strtolower($id), $reserved, true);
+}
+
+function sw_db(): PDO
+{
+    static $pdo = null;
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $cfg = sw_config();
+    $host = $cfg['db_host'];
+    $port = $cfg['db_port'];
+    $dbName = preg_replace('/[^A-Za-z0-9_]/', '', (string)$cfg['db_name']) ?: 'socialwaves_db';
+
+    $dsnBase = "mysql:host={$host};port={$port};charset=utf8mb4";
+    $opts = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+
+    $pdo = new PDO($dsnBase, $cfg['db_user'], $cfg['db_pass'], $opts);
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $pdo->exec("USE `{$dbName}`");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `admins` (
+          `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          `username` VARCHAR(64) NOT NULL,
+          `password_hash` VARCHAR(255) NOT NULL,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          UNIQUE KEY `uniq_admin_username` (`username`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `campaigns` (
+          `id` VARCHAR(40) NOT NULL,
+          `title` VARCHAR(191) NOT NULL,
+          `subtitle` VARCHAR(255) NOT NULL DEFAULT '',
+          `badge` VARCHAR(100) NOT NULL DEFAULT 'Custom Campaign',
+          `frame_id` VARCHAR(64) NOT NULL DEFAULT '',
+          `frame_width` INT UNSIGNED NOT NULL DEFAULT 800,
+          `frame_height` INT UNSIGNED NOT NULL DEFAULT 1000,
+          `crop_width` INT UNSIGNED NOT NULL DEFAULT 260,
+          `crop_height` INT UNSIGNED NOT NULL DEFAULT 300,
+          `slot_json` LONGTEXT NOT NULL,
+          `palette_json` TEXT NOT NULL,
+          `header_tag` VARCHAR(191) NOT NULL DEFAULT '',
+          `footer_text` VARCHAR(255) NOT NULL DEFAULT '',
+          `custom_frame_url` VARCHAR(512) NOT NULL DEFAULT '',
+          `fields_json` LONGTEXT NOT NULL,
+          `text_slots_json` LONGTEXT NOT NULL,
+          `created_by` VARCHAR(64) NOT NULL DEFAULT 'admin',
+          `updated_at` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          KEY `idx_campaigns_updated` (`updated_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `posters` (
+          `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          `campaign_id` VARCHAR(40) NOT NULL,
+          `supporter_name` VARCHAR(191) NOT NULL DEFAULT '',
+          `form_values_json` TEXT NULL,
+          `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          KEY `idx_posters_campaign` (`campaign_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    $count = (int)$pdo->query("SELECT COUNT(*) FROM `admins`")->fetchColumn();
+    if ($count === 0) {
+        $stmt = $pdo->prepare("INSERT INTO `admins` (`username`, `password_hash`) VALUES (?, ?)");
+        $stmt->execute([
+            $cfg['default_admin_user'],
+            password_hash($cfg['default_admin_pass'], PASSWORD_DEFAULT)
+        ]);
+    }
+
+    return $pdo;
+}

@@ -103,8 +103,24 @@
         <span id="sec-warning-text" style="color:#64748b;font-size:12px;"></span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" id="sec-pwd-toggle" class="dash-mini-btn" style="display:none;">Change Password</button>
         <a href="studio" class="dash-mini-btn">Open Studio</a>
       </div>
+    </div>
+
+    <div class="dash-card" id="change-pass-card" style="display:none;margin-bottom:20px;padding:18px 20px;">
+      <form id="change-pass-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;">
+        <div class="dash-field" style="flex:1;min-width:170px;margin:0;">
+          <label for="cur-admin-pass">Current Password</label>
+          <input type="password" id="cur-admin-pass" required autocomplete="current-password">
+        </div>
+        <div class="dash-field" style="flex:1;min-width:170px;margin:0;">
+          <label for="new-admin-pass">New Password (min 6 chars)</label>
+          <input type="password" id="new-admin-pass" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" class="dash-btn" style="width:auto;min-width:150px;">Update Password</button>
+        <span id="pwd-change-msg" style="font-size:12.5px;width:100%;"></span>
+      </form>
     </div>
 
     <div class="dash-stats-strip">
@@ -221,13 +237,49 @@
 
         const secPill = document.getElementById('sec-mode-pill');
         const secWarn = document.getElementById('sec-warning-text');
+        const pwdToggleBtn = document.getElementById('sec-pwd-toggle');
+        const passCard = document.getElementById('change-pass-card');
         if (secPill) {
-          secPill.textContent = sessionInfo.serverBacked
-            ? ('Protected Cookie (' + (sessionInfo.username || 'admin') + ')')
-            : ('Local Admin Session (' + (sessionInfo.username || 'admin') + ')');
+          if (sessionInfo.engine === 'php-mysql') {
+            secPill.textContent = 'PHP + MySQL Protected (' + (sessionInfo.username || 'admin') + ')';
+          } else if (sessionInfo.serverBacked) {
+            secPill.textContent = 'Protected Cookie (' + (sessionInfo.username || 'admin') + ')';
+          } else {
+            secPill.textContent = 'Local Admin Session (' + (sessionInfo.username || 'admin') + ')';
+          }
         }
         if (secWarn && sessionInfo.usingDefaultPassword) {
-          secWarn.textContent = 'Tip: Set custom ADMIN_USERNAME, ADMIN_PASSWORD & AUTH_SECRET in Vercel Environment Variables.';
+          secWarn.textContent = sessionInfo.engine === 'php-mysql'
+            ? 'Security tip: Default password in use — click "Change Password" to set your MySQL admin password.'
+            : 'Tip: Set custom ADMIN_USERNAME, ADMIN_PASSWORD & AUTH_SECRET in Vercel Environment Variables.';
+        }
+        if (pwdToggleBtn && sessionInfo.engine === 'php-mysql') {
+          pwdToggleBtn.style.display = 'inline-flex';
+          pwdToggleBtn.addEventListener('click', function () {
+            if (passCard) {
+              passCard.style.display = passCard.style.display === 'none' ? 'block' : 'none';
+            }
+          });
+        }
+        const changePassForm = document.getElementById('change-pass-form');
+        if (changePassForm) {
+          changePassForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const cur = document.getElementById('cur-admin-pass').value;
+            const nxt = document.getElementById('new-admin-pass').value;
+            const msg = document.getElementById('pwd-change-msg');
+            msg.style.color = '#64748b';
+            msg.textContent = 'Updating password in MySQL...';
+            window.SocialWavesAdminAuth.changePassword(cur, nxt).then(function (r) {
+              msg.style.color = '#047857';
+              msg.textContent = r.message || 'Password updated!';
+              if (secWarn) secWarn.textContent = '';
+              changePassForm.reset();
+            }).catch(function (err) {
+              msg.style.color = '#dc2626';
+              msg.textContent = (err && err.message) || 'Failed to update password.';
+            });
+          });
         }
         bootDashboard();
       });

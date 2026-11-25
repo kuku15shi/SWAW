@@ -18,10 +18,16 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)/+(?:[\s?]|$)
 RewriteRule ^ /%1 [R=302,NE,L]
 
+# Protect database/config internals and Vercel Node handlers from direct download on Apache
+RewriteRule ^(?:database|php_api/(?:config|db)\.php|api/.*\.js$) - [F,L]
+
 # Serve existing files and directories directly
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
+
+# Route clean API endpoints to PHP MySQL handlers on Apache/XAMPP
+RewriteRule ^api/(auth|campaigns|posters)$ php_api/$1.php [L,QSA]
 
 # Clean extensionless page routes
 RewriteRule ^(all-campaigns|campaign|studio|login|dashboard|terms|policy)$ $1.html [L,QSA]

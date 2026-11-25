@@ -702,7 +702,7 @@
               el.style.display = 'none';
             });
 
-            window.SocialWavesData.incrementPosterStat(campaign.id);
+            window.SocialWavesData.incrementPosterStat(campaign.id, formValues);
 
             if (resultSplitWrap) resultSplitWrap.style.display = 'grid';
             fnlOut.textContent = 'POSTER CREATION SUCCESS';

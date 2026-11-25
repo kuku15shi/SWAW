@@ -273,6 +273,7 @@
   }
 
   let REMOTE_CAMPAIGNS = [];
+  let REMOTE_STATS = {};
   let SERVER_STATUS = { available: false, configured: false, mode: 'static' };
   let readyPromise = null;
 
@@ -343,6 +344,9 @@
             configured: Boolean(data.configured),
             mode: data.mode || 'none'
           };
+          if (data.stats && typeof data.stats === 'object') {
+            REMOTE_STATS = data.stats;
+          }
           if (data.configured && Array.isArray(data.campaigns)) {
             REMOTE_CAMPAIGNS = data.campaigns;
             return REMOTE_CAMPAIGNS;
@@ -648,21 +652,38 @@
   }
 
   function getPosterStats() {
+    let localStats = {};
     try {
       const raw = localStorage.getItem(STORAGE_STATS_KEY);
-      return raw ? JSON.parse(raw) : {};
+      localStats = raw ? JSON.parse(raw) : {};
     } catch (e) {
-      return {};
+      localStats = {};
     }
+    const merged = Object.assign({}, localStats);
+    Object.keys(REMOTE_STATS || {}).forEach(function (k) {
+      merged[k] = Math.max(Number(merged[k]) || 0, Number(REMOTE_STATS[k]) || 0);
+    });
+    return merged;
   }
 
-  function incrementPosterStat(campaignId) {
+  function incrementPosterStat(campaignId, formValues) {
     const stats = getPosterStats();
     stats[campaignId] = (stats[campaignId] || 0) + 1;
     try {
       localStorage.setItem(STORAGE_STATS_KEY, JSON.stringify(stats));
     } catch (e) {
       // ignore storage errors
+    }
+    if (SERVER_STATUS && SERVER_STATUS.mode === 'php-mysql' && typeof fetch === 'function') {
+      fetch('api/posters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId: campaignId, formValues: formValues || {} })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.ok && typeof d.count === 'number') {
+          REMOTE_STATS[campaignId] = d.count;
+        }
+      }).catch(function () {});
     }
     return stats[campaignId];
   }

@@ -1110,11 +1110,15 @@
       const ghConnected = Boolean(window.SocialWavesGitHub && window.SocialWavesGitHub.isConfigured());
       if (els.ghStatusPill) {
         if (srv.configured) {
-          els.ghStatusPill.textContent = 'Vercel Cloud Ready (No Token)';
+          els.ghStatusPill.textContent = srv.mode === 'php-mysql'
+            ? 'PHP + MySQL Connected (Short URL)'
+            : 'Vercel Cloud Ready (No Token)';
           els.ghStatusPill.style.background = '#d1fae5';
           els.ghStatusPill.style.color = '#047857';
         } else if (srv.available) {
-          els.ghStatusPill.textContent = 'Vercel (Attach Blob Store)';
+          els.ghStatusPill.textContent = srv.mode === 'mysql-error'
+            ? 'MySQL Error (Check XAMPP)'
+            : 'Vercel (Attach Blob Store)';
           els.ghStatusPill.style.background = '#fef3c7';
           els.ghStatusPill.style.color = '#92400e';
         } else if (ghConnected) {
@@ -1128,9 +1132,15 @@
         }
       }
       if (els.publishBtn) {
-        if (srv.configured) els.publishBtn.textContent = 'Publish Live (Short URL)';
-        else if (ghConnected) els.publishBtn.textContent = 'Publish & Upload to GitHub';
-        else els.publishBtn.textContent = 'Publish Custom Campaign';
+        if (srv.configured) {
+          els.publishBtn.textContent = srv.mode === 'php-mysql'
+            ? 'Publish Live to MySQL (Short URL)'
+            : 'Publish Live (Short URL)';
+        } else if (ghConnected) {
+          els.publishBtn.textContent = 'Publish & Upload to GitHub';
+        } else {
+          els.publishBtn.textContent = 'Publish Custom Campaign';
+        }
       }
     }
 

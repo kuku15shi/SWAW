@@ -20,7 +20,7 @@
   ],
   "rewrites": [
     {
-      "source": "/:id((?!api|all-campaigns|campaign|studio|login|dashboard|terms|policy|css|js|frames|assets|404)[A-Za-z0-9_-]+)",
+      "source": "/:id((?!api|php_api|database|all-campaigns|campaign|studio|login|dashboard|terms|policy|css|js|frames|assets|404)[A-Za-z0-9_-]+)",
       "destination": "/campaign?id=:id"
     }
   ]

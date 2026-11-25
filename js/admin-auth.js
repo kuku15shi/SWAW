@@ -70,6 +70,7 @@
           }
           return {
             serverBacked: true,
+            engine: data.engine || null,
             authenticated: Boolean(data.authenticated),
             username: data.username || null,
             usingDefaultPassword: Boolean(data.usingDefaultPassword)
@@ -110,6 +111,7 @@
         return {
           ok: true,
           serverBacked: true,
+          engine: data.engine || null,
           username: data.username || u,
           usingDefaultPassword: Boolean(data.usingDefaultPassword)
         };
@@ -152,10 +154,29 @@
     return st;
   }
 
+  async function changePassword(currentPassword, newPassword) {
+    const resp = await fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        action: 'change_password',
+        currentPassword: String(currentPassword || ''),
+        newPassword: String(newPassword || '')
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Failed to update password.');
+    }
+    return data;
+  }
+
   global.SocialWavesAdminAuth = {
     checkSession: checkSession,
     login: login,
     logout: logout,
+    changePassword: changePassword,
     requireAdmin: requireAdmin
   };
 })(window);
