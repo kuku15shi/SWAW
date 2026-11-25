@@ -610,14 +610,14 @@
   }
 
   function getCampaignLaunchUrl(campaign) {
-    if (!campaign || !campaign.id) return 'campaign';
-    const base = 'campaign?id=' + encodeURIComponent(campaign.id);
+    if (!campaign || !campaign.id) return './';
     if ((isSyncedRemotely(campaign) || !isCustomCampaign(campaign.id)) && !campaign._forceShareToken) {
-      return base;
+      return encodeURIComponent(campaign.id);
     }
+    const base = 'campaign?id=' + encodeURIComponent(campaign.id);
     const token = encodeCampaignToken(campaign);
     if (!token || token.length > 60000) {
-      return base;
+      return encodeURIComponent(campaign.id);
     }
     return base + '#c=' + token;
   }
